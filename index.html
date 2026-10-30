@@ -49,11 +49,13 @@ body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antiali
   .printable { position: absolute; left: 0; top: 0; width: 100%; }
 }
 </style>
+
+<!-- जास्त रिलायबल CDN वापरला आहे -->
 <script type="importmap">
 { "imports": {
-  "react": "https://esm.sh/react@18.2.0",
-  "react-dom": "https://esm.sh/react-dom@18.2.0",
-  "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
+  "react": "https://cdn.jsdelivr.net/npm/react@18.2.0/+esm",
+  "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/+esm",
+  "react-dom/client": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/client/+esm"
 }}
 </script>
 </head>
@@ -66,6 +68,21 @@ body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antiali
     </div>
   </div>
 </div>
+
+<!-- Error Catcher: जर काही चुकलं तर स्क्रीनवर दिसेल -->
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  document.getElementById('root').innerHTML = `
+    <div style="padding: 20px; font-family: sans-serif; text-align: center; margin-top: 50px;">
+      <h2 style="color: #dc2626; font-size: 20px;">⚠️ तांत्रिक अडचण आली!</h2>
+      <p style="color: #333; margin-top: 10px; font-weight: bold;">Error: ${msg}</p>
+      <p style="color: #666; font-size: 12px; margin-top: 5px;">Line: ${line}</p>
+      <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold;">पुन्हा प्रयत्न करा (Reload)</button>
+    </div>
+  `;
+  return false;
+};
+</script>
 
 <script type="module">
 import { createRoot } from "react-dom/client";
@@ -85,7 +102,6 @@ let app = null, db = null, isFB = false;
 try { app = !getApps().length ? initializeApp(firebaseConfig) : getApp(); db = getFirestore(app); isFB = true; }
 catch (e) { console.warn("FB offline:", e); }
 
-// ============ i18n ============
 const I18N = {
   en: { menu:"Menu", cart:"Cart", orders:"Orders", reports:"Reports", settings:"Settings", home:"Home", addToCart:"Add", placeOrder:"Place Order", search:"Search dishes...", pureVeg:"Pure Veg Only", all:"All", veg:"Veg", nonVeg:"Non-Veg", table:"Table", total:"Total", pending:"Pending", preparing:"Preparing", ready:"Ready", completed:"Completed", specialInstructions:"Special Instructions", feedback:"Rate Your Experience", submit:"Submit", cancel:"Cancel", delete:"Delete", edit:"Edit", save:"Save", logout:"Logout", active:"Active", expired:"Expired", staff:"Staff", branding:"Branding", analytics:"Analytics", revenue:"Revenue", today:"Today", week:"7 Days", month:"30 Days", addDish:"Add Dish", dishName:"Dish Name", price:"Price", category:"Category", description:"Description", image:"Image", uploadImage:"Upload Image", saveItem:"Save", deleteOrder:"Delete", markPaid:"Mark Paid", markUnpaid:"Mark Unpaid", clearHistory:"Clear All History", exportXLSX:"Export Excel", printMenu:"Print Menu", renew:"Renew", activate:"Activate", deactivate:"Deactivate", changePin:"Change PIN", addStaff:"Add Staff", staffName:"Staff Name", staffRole:"Role", staffPin:"4-6 digit PIN", welcome:"Welcome", orderPlaced:"Order Placed!", tokenNo:"Order Number", darkMode:"Dark Mode", language:"Language" },
   mr: { menu:"मेनू", cart:"कार्ट", orders:"ऑर्डर्स", reports:"रिपोर्ट्स", settings:"सेटिंग्ज", home:"होम", addToCart:"घाला", placeOrder:"ऑर्डर करा", search:"डिश शोधा...", pureVeg:"फक्त शाकाहारी", all:"सर्व", veg:"व्हेज", nonVeg:"नॉन-व्हेज", table:"टेबल", total:"एकूण", pending:"प्रलंबित", preparing:"तयार होतंय", ready:"तयार", completed:"पूर्ण", specialInstructions:"विशेष सूचना", feedback:"अनुभव रेट करा", submit:"पाठवा", cancel:"रद्द", delete:"काढा", edit:"बदला", save:"जतन करा", logout:"बाहेर पडा", active:"सक्रिय", expired:"कालबाह्य", staff:"स्टाफ", branding:"ब्रँडिंग", analytics:"विश्लेषण", revenue:"उत्पन्न", today:"आज", week:"७ दिवस", month:"३० दिवस", addDish:"डिश जोडा", dishName:"डिशचं नाव", price:"किंमत", category:"प्रकार", description:"माहिती", image:"फोटो", uploadImage:"फोटो अपलोड करा", saveItem:"जतन करा", deleteOrder:"काढा", markPaid:"पैसे मिळाले", markUnpaid:"पैसे बाकी", clearHistory:"सगळी हिस्ट्री काढा", exportXLSX:"Excel काढा", printMenu:"मेनू प्रिंट", renew:"नूतनीकरण", activate:"चालू करा", deactivate:"बंद करा", changePin:"PIN बदला", addStaff:"स्टाफ जोडा", staffName:"स्टाफचं नाव", staffRole:"भूमिका", staffPin:"४-६ अंकी PIN", welcome:"स्वागत", orderPlaced:"ऑर्डर झाली!", tokenNo:"ऑर्डर क्रमांक", darkMode:"डार्क मोड", language:"भाषा" },
@@ -94,11 +110,10 @@ const I18N = {
 const LangCtx = createContext({ lang: "en", t: (k)=>I18N.en[k]||k });
 const useT = () => useContext(LangCtx);
 
-// ============ Session & Security ============
 const SK = "myqrmenu_session", AK = "myqrmenu_attempts", TK = "myqrmenu_theme", LK = "myqrmenu_lang";
 const TTL = 8 * 3600000;
-const MAX_ATTEMPTS = 5;         // ⚡ 5 wrong attempts
-const BLOCK_MS = 30000;         // ⚡ 30 seconds block
+const MAX_ATTEMPTS = 5;
+const BLOCK_MS = 30000;
 
 function saveSession(s) { try { localStorage.setItem(SK, JSON.stringify({ ...s, exp: Date.now() + TTL })); } catch(e){} }
 function loadSession() { try { const r = localStorage.getItem(SK); if(!r) return null; const s = JSON.parse(r); if(s.exp && s.exp < Date.now()){ localStorage.removeItem(SK); return null; } return s; } catch(e){ return null; } }
@@ -122,7 +137,6 @@ function isBlocked() {
   return { blocked: false };
 }
 
-// ============ Helpers ============
 const DEF_REST = [
   { id: "rest-101", name: "Sagar's Cafe", tagline: "Fresh Brews & Bites", ownerPin: "111111", kitchenPin: "222222", subscriptionStatus: "ACTIVE", dueDate: new Date(Date.now()+30*864e5).toISOString().split("T")[0], isMenuActive: true, isOrdersActive: true, themeColor: "#d97706" },
   { id: "rest-102", name: "Spice Craft Bistro", tagline: "Modern Fusion", ownerPin: "333333", kitchenPin: "444444", subscriptionStatus: "EXPIRED", dueDate: new Date(Date.now()-3*864e5).toISOString().split("T")[0], isMenuActive: true, isOrdersActive: true, themeColor: "#dc2626" },
@@ -130,13 +144,11 @@ const DEF_REST = [
 const daysLeft = (d) => { if(!d) return 0; return Math.ceil((new Date(d).getTime() - Date.now())/864e5); };
 const fmtTime = (s) => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 function playBeep() { try { const c = new (window.AudioContext||window.webkitAudioContext)(); [880, 1100].forEach((f,i) => { const o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(0.3, c.currentTime + i*0.25); g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + i*0.25 + 0.4); o.start(c.currentTime + i*0.25); o.stop(c.currentTime + i*0.25 + 0.4); }); } catch(e){} }
-function showNotif(title, body) { if ("Notification" in window && Notification.permission === "granted") { try { new Notification(title, { body, icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🍽️</text></svg>" }); } catch(e){} } }
 function fileToBase64(file, maxSize=300) { return new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => { const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); let w = img.width, h = img.height; if (w > maxSize || h > maxSize) { const ratio = Math.min(maxSize/w, maxSize/h); w *= ratio; h *= ratio; } c.width = w; c.height = h; c.getContext("2d").drawImage(img, 0, 0, w, h); resolve(c.toDataURL("image/jpeg", 0.7)); }; img.src = e.target.result; }; r.readAsDataURL(file); }); }
 
 const mapItem = (id, d) => ({ id: id || d.id, name: d.name || "Untitled", description: d.description || "", price: typeof d.price === "number" ? d.price : parseFloat(d.price) || 0, category: d.category || "Mains", imageUrl: d.image || d.imageUrl || "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80", isVegetarian: d.type === "veg" || d.isVegetarian === true, tag: d.isSpecial ? "Special" : null, prepTime: d.prepTime || "15 mins", available: d.available !== false });
 const parseOrder = (id, d) => ({ id, tokenNumber: d.tokenNumber || `TB-${id.slice(0,4)}`, tableNumber: d.tableNumber || 1, items: d.items || [], totalAmount: +d.totalAmount || 0, status: (d.status || "PENDING").toUpperCase(), paymentStatus: d.paymentStatus || "UNPAID", specialInstructions: d.specialInstructions || "", createdAt: d.createdAt || "", timestamp: d.timestamp || 0, rating: d.rating || 0, feedback: d.feedback || "" });
 
-// ============ MAIN APP ============
 function App() {
   const qp = new URLSearchParams(window.location.search);
   const urlRestId = qp.get("restId") || "rest-101";
@@ -183,7 +195,6 @@ function App() {
   }, []);
 
   const currentRestaurant = useMemo(() => restaurants.find((r) => r.id === currentRestId) || { ...DEF_REST[0], id: currentRestId }, [restaurants, currentRestId]);
-
   const themeColor = currentRestaurant.themeColor || "#d97706";
   useEffect(() => {
     document.documentElement.style.setProperty("--brand", themeColor);
@@ -217,7 +228,6 @@ function App() {
   );
 }
 
-// ============ PIN LOGIN ============
 function PinLogin({ restaurants, defaultRestId, onSuccess, onCancel }) {
   const { t } = useT();
   const [pin, setPin] = useState("");
@@ -292,7 +302,6 @@ function PinLogin({ restaurants, defaultRestId, onSuccess, onCancel }) {
   );
 }
 
-// ============ BOTTOM TAB BAR ============
 function TabBar({ tabs, active, onChange }) {
   return React.createElement("div", { className: "bottom-tab-bar" },
     React.createElement("div", { className: "max-w-xl mx-auto flex" },
@@ -304,7 +313,6 @@ function TabBar({ tabs, active, onChange }) {
   );
 }
 
-// ============ BOTTOM SHEET ============
 function Sheet({ open, onClose, children, title }) {
   if (!open) return null;
   return React.createElement("div", { className: "fixed inset-0 z-50 flex items-end justify-center" },
@@ -320,7 +328,6 @@ function Sheet({ open, onClose, children, title }) {
   );
 }
 
-// ============ CUSTOMER VIEW ============
 function CustomerView({ restaurant, tableNumber }) {
   const { t, lang, setLang, dark, setDark } = useT();
   const [menuItems, setMenuItems] = useState([]);
@@ -590,7 +597,6 @@ function CustomerView({ restaurant, tableNumber }) {
   );
 }
 
-// ============ KITCHEN VIEW ============
 function KitchenView({ restaurant, onLogout }) {
   const { t } = useT();
   const [orders, setOrders] = useState([]);
@@ -611,7 +617,7 @@ function KitchenView({ restaurant, onLogout }) {
       const currPending = new Set(list.filter((o) => o.status === "PENDING").map((o) => o.id));
       let hasNew = false;
       currPending.forEach((id) => { if (!prevIds.current.has(id)) hasNew = true; });
-      if (hasNew && prevIds.current.size > 0 && sound) { playBeep(); showNotif("🔔 New Order", "Check kitchen display"); }
+      if (hasNew && prevIds.current.size > 0 && sound) { playBeep(); }
       prevIds.current = currPending;
     }, () => {});
     return () => unsub();
@@ -677,7 +683,6 @@ function KitchenView({ restaurant, onLogout }) {
   );
 }
 
-// ============ OWNER VIEW ============
 function OwnerView({ restaurant, onLogout }) {
   const { t, lang, setLang, dark, setDark } = useT();
   const [tab, setTab] = useState("home");
@@ -713,30 +718,6 @@ function OwnerView({ restaurant, onLogout }) {
   const dishSales = {};
   pOrders.forEach((o) => o.items.forEach((i) => { dishSales[i.name] = (dishSales[i.name] || 0) + i.qty; }));
   const bestSellers = Object.entries(dishSales).sort((a,b) => b[1] - a[1]).slice(0, 5);
-
-  const chartData = useMemo(() => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 864e5);
-      const dateStr = d.toISOString().split("T")[0];
-      const dayRev = orders.filter((o) => o.createdAt && o.createdAt.startsWith(dateStr) && o.status !== "CANCELLED").reduce((s, o) => s + o.totalAmount, 0);
-      days.push({ label: d.toLocaleDateString("en", { weekday: "short" }), value: dayRev });
-    }
-    return days;
-  }, [orders]);
-
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
-  useEffect(() => {
-    if (tab !== "analytics" || !chartRef.current) return;
-    if (chartInstance.current) chartInstance.current.destroy();
-    chartInstance.current = new Chart(chartRef.current, {
-      type: "bar",
-      data: { labels: chartData.map((d) => d.label), datasets: [{ label: "Revenue (₹)", data: chartData.map((d) => d.value), backgroundColor: "#d97706" }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-    return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-  }, [tab, chartData]);
 
   const saveItem = async (e) => {
     e.preventDefault();
@@ -895,26 +876,6 @@ function OwnerView({ restaurant, onLogout }) {
       React.createElement("div", { className: "flex gap-2" },
         React.createElement("button", { onClick: exportXLSX, className: "flex-1 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold" }, "📥 " + t("exportXLSX")),
         React.createElement("button", { onClick: () => window.print(), className: "flex-1 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold" }, "🖨️ " + t("printMenu"))
-      ),
-      React.createElement("div", { className: "printable hidden print:block p-4" },
-        React.createElement("h1", { className: "text-xl font-black" }, restaurant.name),
-        React.createElement("p", { className: "text-xs mt-1" }, `Report: ${period} • ${new Date().toLocaleString()}`),
-        React.createElement("table", { className: "w-full text-xs mt-3 border" },
-          React.createElement("thead", null, React.createElement("tr", null, ["Token","Table","Total","Payment"].map((h) => React.createElement("th", { key: h, className: "border p-1 text-left" }, h)))),
-          React.createElement("tbody", null, pOrders.map((o) => React.createElement("tr", { key: o.id },
-            React.createElement("td", { className: "border p-1" }, o.tokenNumber),
-            React.createElement("td", { className: "border p-1" }, o.tableNumber),
-            React.createElement("td", { className: "border p-1 font-mono" }, `₹${o.totalAmount.toFixed(2)}`),
-            React.createElement("td", { className: "border p-1" }, o.paymentStatus)
-          )))
-        )
-      )
-    ),
-
-    tab === "analytics" && React.createElement("div", { className: "space-y-3" },
-      React.createElement("h2", { className: "text-lg font-black" }, "📊 " + t("analytics")),
-      React.createElement("div", { className: "bg-white p-4 rounded-2xl border", style: { height: "300px" } },
-        React.createElement("canvas", { ref: chartRef })
       )
     ),
 
@@ -1009,7 +970,6 @@ function OwnerView({ restaurant, onLogout }) {
   );
 }
 
-// ============ QR MODAL ============
 function QrModal({ restId, name, onClose }) {
   const [table, setTable] = useState(5);
   const [custom, setCustom] = useState("");
@@ -1041,7 +1001,6 @@ function QrModal({ restId, name, onClose }) {
   );
 }
 
-// ============ ADMIN VIEW ============
 function AdminView({ restaurants, onRenew, onAdd, onLogout, setRestaurants }) {
   const { t } = useT();
   const [tab, setTab] = useState("list");
@@ -1135,7 +1094,7 @@ function AdminView({ restaurants, onRenew, onAdd, onLogout, setRestaurants }) {
   );
 }
 
-createRoot(document.getElementById("root")).render(React.createElement(App));
+createRoot(document.getElementById('root')).render(React.createElement(App));
 </script>
 </body>
 </html>
