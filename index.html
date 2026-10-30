@@ -1044,17 +1044,16 @@ function AdminView({ restaurants, onRenew, onAdd, onLogout, setRestaurants }) {
           React.createElement("p", null, "🍳 Kitchen: " + result.kitchenPin),
           React.createElement("p", { className: "text-xs text-stone-500" }, "📅 " + result.dueDate)
         ),
-        React.createElement("button", {
-          onClick: () => {
-            const msg = "🎉 Welcome!\n" + result.name + "\nID: " + result.id + "\n👑 Owner: " + result.ownerPin + "\n🍳 Kitchen: " + result.kitchenPin + "\n📅 Due: " + result.dueDate;
-            navigator.clipboard.writeText(msg);
-            alert("Copied!");
-          },
-          className: "w-full py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold"
-        }, "📋 Copy Message")
-      )
+                onClick: () => {
+          const msg = "🎉 Welcome!\n" + result.name + "\nID: " + result.id + "\n👑 Owner: " + result.ownerPin + "\n🍳 Kitchen: " + result.kitchenPin + "\n📅 Due: " + result.dueDate;
+          navigator.clipboard.writeText(msg);
+          alert("Copied!");
+        },
+        className: "w-full py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold"
+      }, "📋 Copy Message")
     )
-  );
+  )
+);
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
