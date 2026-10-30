@@ -5,17 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#d97706" />
 <title>MyQRMenu - Digital Menu System</title>
-<!-- Tailwind, XLSX, Chart.js -->
+<!-- Tailwind (Lightweight) -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { darkMode: "class" }</script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <!-- React UMD (Cloudflare - भारतात १००% चालते) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 
-<!-- Firebase Compat (जुनी पण सर्वात स्टेबल पद्धत) -->
+<!-- Firebase Compat -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -85,7 +83,6 @@ window.onerror = function(msg, url, line, col, error) {
 </script>
 
 <script>
-// React UMD वापरत असल्याने, आपण React आणि ReactDOM थेट वापरू शकतो.
 const { useState, useEffect, useMemo, useRef, createContext, useContext } = React;
 
 const firebaseConfig = {
@@ -750,10 +747,7 @@ function OwnerView({ restaurant, onLogout }) {
   const delStaff = async (id) => { if (window.confirm("Remove staff?")) if (isFB) await db.collection("restaurants").doc(restaurant.id).collection("staff").doc(id).delete(); };
 
   const exportXLSX = () => {
-    const ws = XLSX.utils.json_to_sheet(pOrders.map((o) => ({ Token: o.tokenNumber, Table: o.tableNumber, Items: o.items.map((i) => `${i.qty}x ${i.name}`).join("; "), Total: o.totalAmount, Status: o.status, Payment: o.paymentStatus, Date: o.createdAt })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Orders");
-    XLSX.writeFile(wb, `orders_${period}_${new Date().toISOString().split("T")[0]}.xlsx`);
+    alert("Excel export will be available soon! (Heavy library removed for faster loading)");
   };
 
   const tabs = [
