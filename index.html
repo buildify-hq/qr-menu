@@ -50,12 +50,12 @@ body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antiali
 }
 </style>
 
-<!-- जास्त रिलायबल CDN वापरला आहे -->
+<!-- जास्त रिलायबल unpkg सर्व्हर वापरला आहे -->
 <script type="importmap">
 { "imports": {
-  "react": "https://cdn.jsdelivr.net/npm/react@18.2.0/+esm",
-  "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/+esm",
-  "react-dom/client": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/client/+esm"
+  "react": "https://unpkg.com/react@18.2.0/index.js",
+  "react-dom": "https://unpkg.com/react-dom@18.2.0/index.js",
+  "react-dom/client": "https://unpkg.com/react-dom@18.2.0/client.js"
 }}
 </script>
 </head>
@@ -65,23 +65,19 @@ body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antiali
     <div class="text-center p-6 space-y-3">
       <div class="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
       <p class="text-sm font-semibold">Loading MyQRMenu...</p>
+      <p id="slow-msg" style="display:none; color:#dc2626; font-size:12px; margin-top:20px;">इंटरनेट किंवा नेटवर्कमुळे कोड लोड होत नाहीये. कृपया Wi-Fi वापरून बघा.</p>
     </div>
   </div>
 </div>
 
-<!-- Error Catcher: जर काही चुकलं तर स्क्रीनवर दिसेल -->
+<!-- जर ६ सेकंदात लोड झालं नाही तर मेसेज दाखवण्यासाठी -->
 <script>
-window.onerror = function(msg, url, line, col, error) {
-  document.getElementById('root').innerHTML = `
-    <div style="padding: 20px; font-family: sans-serif; text-align: center; margin-top: 50px;">
-      <h2 style="color: #dc2626; font-size: 20px;">⚠️ तांत्रिक अडचण आली!</h2>
-      <p style="color: #333; margin-top: 10px; font-weight: bold;">Error: ${msg}</p>
-      <p style="color: #666; font-size: 12px; margin-top: 5px;">Line: ${line}</p>
-      <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold;">पुन्हा प्रयत्न करा (Reload)</button>
-    </div>
-  `;
-  return false;
-};
+setTimeout(function() {
+  var el = document.getElementById('slow-msg');
+  if(el && document.getElementById('root').innerHTML.includes('Loading')) {
+    el.style.display = 'block';
+  }
+}, 6000);
 </script>
 
 <script type="module">
