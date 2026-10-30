@@ -5,10 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#d97706" />
 <title>MyQRMenu - Digital Menu System</title>
+<!-- Tailwind, XLSX, Chart.js -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { darkMode: "class" }</script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- React UMD (Cloudflare - भारतात १००% चालते) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+
+<!-- Firebase Compat (जुनी पण सर्वात स्टेबल पद्धत) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
 <style>
 :root { --brand: #d97706; --brand-dark: #b45309; }
 body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; overscroll-behavior-y: contain; transition: background 0.3s; }
@@ -49,15 +59,6 @@ body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antiali
   .printable { position: absolute; left: 0; top: 0; width: 100%; }
 }
 </style>
-
-<!-- जास्त रिलायबल unpkg सर्व्हर वापरला आहे -->
-<script type="importmap">
-{ "imports": {
-  "react": "https://unpkg.com/react@18.2.0/index.js",
-  "react-dom": "https://unpkg.com/react-dom@18.2.0/index.js",
-  "react-dom/client": "https://unpkg.com/react-dom@18.2.0/client.js"
-}}
-</script>
 </head>
 <body class="bg-stone-50 text-stone-900 min-h-screen">
 <div id="root">
@@ -65,26 +66,27 @@ body { -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antiali
     <div class="text-center p-6 space-y-3">
       <div class="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
       <p class="text-sm font-semibold">Loading MyQRMenu...</p>
-      <p id="slow-msg" style="display:none; color:#dc2626; font-size:12px; margin-top:20px;">इंटरनेट किंवा नेटवर्कमुळे कोड लोड होत नाहीये. कृपया Wi-Fi वापरून बघा.</p>
     </div>
   </div>
 </div>
 
-<!-- जर ६ सेकंदात लोड झालं नाही तर मेसेज दाखवण्यासाठी -->
 <script>
-setTimeout(function() {
-  var el = document.getElementById('slow-msg');
-  if(el && document.getElementById('root').innerHTML.includes('Loading')) {
-    el.style.display = 'block';
-  }
-}, 6000);
+// Error Catcher
+window.onerror = function(msg, url, line, col, error) {
+  document.getElementById('root').innerHTML = `
+    <div style="padding: 20px; font-family: sans-serif; text-align: center; margin-top: 50px;">
+      <h2 style="color: #dc2626; font-size: 20px;">⚠️ तांत्रिक अडचण आली!</h2>
+      <p style="color: #333; margin-top: 10px; font-weight: bold;">Error: ${msg}</p>
+      <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold;">पुन्हा प्रयत्न करा (Reload)</button>
+    </div>
+  `;
+  return false;
+};
 </script>
 
-<script type="module">
-import { createRoot } from "react-dom/client";
-import React, { useState, useEffect, useMemo, useRef, createContext, useContext } from "react";
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<script>
+// React UMD वापरत असल्याने, आपण React आणि ReactDOM थेट वापरू शकतो.
+const { useState, useEffect, useMemo, useRef, createContext, useContext } = React;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDL_AyEqLAZ7mafIN3J5AMV2n3uShEeW8",
@@ -95,7 +97,7 @@ const firebaseConfig = {
   appId: "1:71280897038:web:180294fd94d32e6f11205f",
 };
 let app = null, db = null, isFB = false;
-try { app = !getApps().length ? initializeApp(firebaseConfig) : getApp(); db = getFirestore(app); isFB = true; }
+try { app = firebase.initializeApp(firebaseConfig); db = firebase.firestore(); isFB = true; }
 catch (e) { console.warn("FB offline:", e); }
 
 const I18N = {
@@ -175,7 +177,7 @@ function App() {
 
   useEffect(() => {
     if (!isFB) return;
-    const unsub = onSnapshot(collection(db, "restaurants"), (snap) => {
+    const unsub = db.collection("restaurants").onSnapshot((snap) => {
       if (!snap.empty) {
         const fsList = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setRestaurants((prev) => {
@@ -203,7 +205,7 @@ function App() {
     const base = curr?.dueDate && new Date(curr.dueDate) > new Date() ? new Date(curr.dueDate) : new Date();
     const newDue = new Date(base.getTime() + 30*864e5).toISOString().split("T")[0];
     setRestaurants((prev) => prev.map((r) => r.id === restId ? { ...r, subscriptionStatus: "ACTIVE", dueDate: newDue } : r));
-    if (isFB) try { await updateDoc(doc(db, "restaurants", restId), { subscriptionStatus: "ACTIVE", dueDate: newDue }); } catch(e){}
+    if (isFB) try { await db.collection("restaurants").doc(restId).update({ subscriptionStatus: "ACTIVE", dueDate: newDue }); } catch(e){}
   };
   const addRest = (r) => setRestaurants((prev) => prev.some((x) => x.id === r.id) ? prev.map((x) => x.id === r.id ? { ...x, ...r } : x) : [r, ...prev]);
 
@@ -249,7 +251,7 @@ function PinLogin({ restaurants, defaultRestId, onSuccess, onCancel }) {
     if (isFB) {
       for (const r of restaurants) {
         try {
-          const snap = await getDocs(collection(db, "restaurants", r.id, "staff"));
+          const snap = await db.collection("restaurants").doc(r.id).collection("staff").get();
           const staff = snap.docs.find((d) => d.data().pin === pin);
           if (staff) return onSuccess({ role: staff.data().role || "kitchen", restaurantId: r.id });
         } catch(e) {}
@@ -346,7 +348,7 @@ function CustomerView({ restaurant, tableNumber }) {
 
   useEffect(() => {
     if (!isFB) { setLoading(false); return; }
-    const unsub = onSnapshot(collection(db, "restaurants", restaurant.id, "menuItems"), (snap) => {
+    const unsub = db.collection("restaurants").doc(restaurant.id).collection("menuItems").onSnapshot((snap) => {
       setMenuItems(snap.docs.map((d) => mapItem(d.id, d.data())));
       setLoading(false);
     }, () => setLoading(false));
@@ -355,7 +357,7 @@ function CustomerView({ restaurant, tableNumber }) {
 
   useEffect(() => {
     if (!isFB) return;
-    const unsub = onSnapshot(collection(db, "restaurants", restaurant.id, "orders"), (snap) => {
+    const unsub = db.collection("restaurants").doc(restaurant.id).collection("orders").onSnapshot((snap) => {
       const orders = snap.docs.map((d) => parseOrder(d.id, d.data()))
         .filter((o) => String(o.tableNumber) === String(tableNumber))
         .filter((o) => (o.timestamp || 0) > Date.now() - 4*3600000)
@@ -391,19 +393,19 @@ function CustomerView({ restaurant, tableNumber }) {
     const token = "TB-" + Math.floor(100 + Math.random() * 900);
     const payload = { tokenNumber: token, tableNumber, items: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })), totalAmount: total, specialInstructions: notes.trim(), status: "PENDING", paymentStatus: "UNPAID", createdAt: new Date().toISOString(), timestamp: Date.now() };
     let orderId = "ord_" + Date.now();
-    if (isFB) try { const ref = await addDoc(collection(db, "restaurants", restaurant.id, "orders"), payload); orderId = ref.id; } catch(e) {}
+    if (isFB) try { const ref = await db.collection("restaurants").doc(restaurant.id).collection("orders").add(payload); orderId = ref.id; } catch(e) {}
     setSuccessOrder({ id: orderId, ...payload });
     setCart([]); setNotes(""); setCartOpen(false); setSubmitting(false);
   };
 
   const cancelOrder = async (orderId) => {
     if (!window.confirm("Cancel this order?")) return;
-    if (isFB) try { await updateDoc(doc(db, "restaurants", restaurant.id, "orders", orderId), { status: "CANCELLED" }); } catch(e) {}
+    if (isFB) try { await db.collection("restaurants").doc(restaurant.id).collection("orders").doc(orderId).update({ status: "CANCELLED" }); } catch(e) {}
   };
 
   const submitFeedback = async () => {
     if (!feedbackOrder) return;
-    if (isFB) try { await updateDoc(doc(db, "restaurants", restaurant.id, "orders", feedbackOrder.id), { rating, feedback: feedbackText }); } catch(e) {}
+    if (isFB) try { await db.collection("restaurants").doc(restaurant.id).collection("orders").doc(feedbackOrder.id).update({ rating, feedback: feedbackText }); } catch(e) {}
     setFeedbackOrder(null); setRating(5); setFeedbackText("");
   };
 
@@ -605,7 +607,7 @@ function KitchenView({ restaurant, onLogout }) {
 
   useEffect(() => {
     if (!isFB) return;
-    const unsub = onSnapshot(collection(db, "restaurants", restaurant.id, "orders"), (snap) => {
+    const unsub = db.collection("restaurants").doc(restaurant.id).collection("orders").onSnapshot((snap) => {
       const list = snap.docs.map((d) => parseOrder(d.id, d.data()))
         .filter((o) => !["COMPLETED", "CANCELLED"].includes(o.status) || (o.timestamp > Date.now() - 30*60000))
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
@@ -621,7 +623,7 @@ function KitchenView({ restaurant, onLogout }) {
 
   const setStatus = async (id, s) => {
     setOrders((p) => p.map((o) => o.id === id ? { ...o, status: s } : o));
-    if (isFB) try { await updateDoc(doc(db, "restaurants", restaurant.id, "orders", id), { status: s }); } catch(e) {}
+    if (isFB) try { await db.collection("restaurants").doc(restaurant.id).collection("orders").doc(id).update({ status: s }); } catch(e) {}
   };
 
   const cols = [
@@ -698,9 +700,9 @@ function OwnerView({ restaurant, onLogout }) {
   useEffect(() => {
     if (!isFB) return;
     const unsubs = [
-      onSnapshot(collection(db, "restaurants", restaurant.id, "menuItems"), (s) => setMenu(s.docs.map((d) => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "restaurants", restaurant.id, "orders"), (s) => setOrders(s.docs.map((d) => parseOrder(d.id, d.data())).sort((a,b) => (b.timestamp||0) - (a.timestamp||0)))),
-      onSnapshot(collection(db, "restaurants", restaurant.id, "staff"), (s) => setStaff(s.docs.map((d) => ({ id: d.id, ...d.data() }))))
+      db.collection("restaurants").doc(restaurant.id).collection("menuItems").onSnapshot((s) => setMenu(s.docs.map((d) => ({ id: d.id, ...d.data() })))),
+      db.collection("restaurants").doc(restaurant.id).collection("orders").onSnapshot((s) => setOrders(s.docs.map((d) => parseOrder(d.id, d.data())).sort((a,b) => (b.timestamp||0) - (a.timestamp||0)))),
+      db.collection("restaurants").doc(restaurant.id).collection("staff").onSnapshot((s) => setStaff(s.docs.map((d) => ({ id: d.id, ...d.data() }))))
     ];
     return () => unsubs.forEach((u) => u());
   }, [restaurant.id]);
@@ -719,33 +721,33 @@ function OwnerView({ restaurant, onLogout }) {
     e.preventDefault();
     const data = { ...newItem, price: parseFloat(newItem.price) || 0, isVegetarian: newItem.type === "Veg", available: true, createdAt: new Date().toISOString() };
     if (isFB) {
-      if (editItem) await updateDoc(doc(db, "restaurants", restaurant.id, "menuItems", editItem.id), data);
-      else await addDoc(collection(db, "restaurants", restaurant.id, "menuItems"), data);
+      if (editItem) await db.collection("restaurants").doc(restaurant.id).collection("menuItems").doc(editItem.id).update(data);
+      else await db.collection("restaurants").doc(restaurant.id).collection("menuItems").add(data);
     }
     setAddOpen(false); setEditItem(null);
     setNewItem({ name: "", description: "", price: "", type: "Veg", category: "Mains", image: "", isSpecial: false });
   };
-  const delItem = async (id) => { if (window.confirm("Delete?")) if (isFB) await deleteDoc(doc(db, "restaurants", restaurant.id, "menuItems", id)); };
-  const toggleAvail = async (item) => { if (isFB) await updateDoc(doc(db, "restaurants", restaurant.id, "menuItems", item.id), { available: item.available === false }); };
+  const delItem = async (id) => { if (window.confirm("Delete?")) if (isFB) await db.collection("restaurants").doc(restaurant.id).collection("menuItems").doc(id).delete(); };
+  const toggleAvail = async (item) => { if (isFB) await db.collection("restaurants").doc(restaurant.id).collection("menuItems").doc(item.id).update({ available: item.available === false }); };
 
-  const togglePay = async (o) => { if (isFB) await updateDoc(doc(db, "restaurants", restaurant.id, "orders", o.id), { paymentStatus: o.paymentStatus === "PAID" ? "UNPAID" : "PAID" }); };
-  const delOrder = async (id) => { if (window.confirm("Delete order?")) if (isFB) await deleteDoc(doc(db, "restaurants", restaurant.id, "orders", id)); };
-  const clearAll = async () => { if (!window.confirm("Delete ALL orders?")) return; if (isFB) { const snap = await getDocs(collection(db, "restaurants", restaurant.id, "orders")); const batch = writeBatch(db); snap.docs.forEach((d) => batch.delete(d.ref)); await batch.commit(); } };
+  const togglePay = async (o) => { if (isFB) await db.collection("restaurants").doc(restaurant.id).collection("orders").doc(o.id).update({ paymentStatus: o.paymentStatus === "PAID" ? "UNPAID" : "PAID" }); };
+  const delOrder = async (id) => { if (window.confirm("Delete order?")) if (isFB) await db.collection("restaurants").doc(restaurant.id).collection("orders").doc(id).delete(); };
+  const clearAll = async () => { if (!window.confirm("Delete ALL orders?")) return; if (isFB) { const snap = await db.collection("restaurants").doc(restaurant.id).collection("orders").get(); const batch = db.batch(); snap.docs.forEach((d) => batch.delete(d.ref)); await batch.commit(); } };
 
-  const toggleFlag = async (f) => { if (isFB) await updateDoc(doc(db, "restaurants", restaurant.id), { [f]: !(restaurant[f] !== false) }); };
+  const toggleFlag = async (f) => { if (isFB) await db.collection("restaurants").doc(restaurant.id).update({ [f]: !(restaurant[f] !== false) }); };
 
   const saveBranding = async () => {
-    if (isFB) await updateDoc(doc(db, "restaurants", restaurant.id), branding);
+    if (isFB) await db.collection("restaurants").doc(restaurant.id).update(branding);
     alert("Branding saved!");
   };
 
   const addStaff = async (e) => {
     e.preventDefault();
     if (!newStaff.name || !newStaff.pin || newStaff.pin.length < 4) return;
-    if (isFB) await addDoc(collection(db, "restaurants", restaurant.id, "staff"), { ...newStaff, createdAt: new Date().toISOString() });
+    if (isFB) await db.collection("restaurants").doc(restaurant.id).collection("staff").add({ ...newStaff, createdAt: new Date().toISOString() });
     setNewStaff({ name: "", pin: "", role: "kitchen" });
   };
-  const delStaff = async (id) => { if (window.confirm("Remove staff?")) if (isFB) await deleteDoc(doc(db, "restaurants", restaurant.id, "staff", id)); };
+  const delStaff = async (id) => { if (window.confirm("Remove staff?")) if (isFB) await db.collection("restaurants").doc(restaurant.id).collection("staff").doc(id).delete(); };
 
   const exportXLSX = () => {
     const ws = XLSX.utils.json_to_sheet(pOrders.map((o) => ({ Token: o.tokenNumber, Table: o.tableNumber, Items: o.items.map((i) => `${i.qty}x ${i.name}`).join("; "), Total: o.totalAmount, Status: o.status, Payment: o.paymentStatus, Date: o.createdAt })));
@@ -1003,9 +1005,9 @@ function AdminView({ restaurants, onRenew, onAdd, onLogout, setRestaurants }) {
   const [name, setName] = useState("");
   const [result, setResult] = useState(null);
 
-  const delRest = async (id, n) => { if (window.confirm(`Delete ${n}?`)) { setRestaurants((p) => p.filter((r) => r.id !== id)); if (isFB) await deleteDoc(doc(db, "restaurants", id)); } };
-  const toggleStatus = async (r) => { const ns = r.subscriptionStatus === "ACTIVE" ? "EXPIRED" : "ACTIVE"; setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, subscriptionStatus: ns } : x)); if (isFB) await updateDoc(doc(db, "restaurants", r.id), { subscriptionStatus: ns }); };
-  const changePin = async (r) => { const oP = String(Math.floor(100000 + Math.random() * 900000)); let kP = String(Math.floor(100000 + Math.random() * 900000)); while (kP === oP) kP = String(Math.floor(100000 + Math.random() * 900000)); setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, ownerPin: oP, kitchenPin: kP } : x)); if (isFB) await updateDoc(doc(db, "restaurants", r.id), { ownerPin: oP, kitchenPin: kP }); alert(`New PINs:\nOwner: ${oP}\nKitchen: ${kP}`); };
+  const delRest = async (id, n) => { if (window.confirm(`Delete ${n}?`)) { setRestaurants((p) => p.filter((r) => r.id !== id)); if (isFB) await db.collection("restaurants").doc(id).delete(); } };
+  const toggleStatus = async (r) => { const ns = r.subscriptionStatus === "ACTIVE" ? "EXPIRED" : "ACTIVE"; setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, subscriptionStatus: ns } : x)); if (isFB) await db.collection("restaurants").doc(r.id).update({ subscriptionStatus: ns }); };
+  const changePin = async (r) => { const oP = String(Math.floor(100000 + Math.random() * 900000)); let kP = String(Math.floor(100000 + Math.random() * 900000)); while (kP === oP) kP = String(Math.floor(100000 + Math.random() * 900000)); setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, ownerPin: oP, kitchenPin: kP } : x)); if (isFB) await db.collection("restaurants").doc(r.id).update({ ownerPin: oP, kitchenPin: kP }); alert(`New PINs:\nOwner: ${oP}\nKitchen: ${kP}`); };
 
   const generate = async (e) => {
     e.preventDefault();
@@ -1016,7 +1018,7 @@ function AdminView({ restaurants, onRenew, onAdd, onLogout, setRestaurants }) {
     const dueDate = new Date(Date.now() + 30*864e5).toISOString().split("T")[0];
     const payload = { name: name.trim(), ownerPin, kitchenPin, subscriptionStatus: "ACTIVE", dueDate, isMenuActive: true, isOrdersActive: true, themeColor: "#d97706" };
     let id = "rest-" + Date.now().toString().slice(-6);
-    if (isFB) try { const ref = await addDoc(collection(db, "restaurants"), payload); id = ref.id; } catch(e) {}
+    if (isFB) try { const ref = await db.collection("restaurants").add(payload); id = ref.id; } catch(e) {}
     const created = { id, ...payload };
     onAdd(created);
     setResult(created);
@@ -1090,7 +1092,8 @@ function AdminView({ restaurants, onRenew, onAdd, onLogout, setRestaurants }) {
   );
 }
 
-createRoot(document.getElementById('root')).render(React.createElement(App));
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
 </script>
 </body>
 </html>
