@@ -334,6 +334,7 @@ function CustomerView({ restaurant, tableNumber }) {
   useEffect(() => {
     let unsubscribe = () => {};
     let isMounted = true;
+    let hasReceivedInitialSnapshot = false;
     setLoading(true);
     setFetchError(null);
 
@@ -434,7 +435,7 @@ function CustomerView({ restaurant, tableNumber }) {
     }
   }, [activeOrderId, restaurantId]);
 
-  const categories = ["All", "Veg", "Non-Veg", "Mains", "Snacks", "Drinks", "Ice Cream", "Desserts"];
+  const categories = ["All", "Veg", "Non-Veg", "Mains", "Snacks"];
 
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
@@ -949,6 +950,31 @@ function CustomerView({ restaurant, tableNumber }) {
 function KitchenDashboard({ restaurant, onLogout }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  const playKitchenAlert = () => {
+    if (!soundEnabled) return;
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.42);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.45);
+      oscillator.onended = () => audioContext.close();
+    } catch (error) {
+      console.warn("Kitchen sound alert unavailable:", error);
+    }
+  };
   const targetRestId = (restaurant && restaurant.id) || "rest-101";
 
   useEffect(() => {
@@ -1029,6 +1055,13 @@ function KitchenDashboard({ restaurant, onLogout }) {
           ordersCol,
           (snapshot) => {
             if (!isMounted) return;
+            if (hasReceivedInitialSnapshot) {
+              const newPendingOrder = snapshot.docChanges().some((change) =>
+                change.type === "added" && (change.doc.data().status || "PENDING").toUpperCase() === "PENDING"
+              );
+              if (newPendingOrder) playKitchenAlert();
+            }
+            hasReceivedInitialSnapshot = true;
             const liveOrders = snapshot.docs.map((docSnap) => parseOrderData(docSnap.id, docSnap.data()));
             liveOrders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             setOrders(liveOrders);
@@ -1051,7 +1084,7 @@ function KitchenDashboard({ restaurant, onLogout }) {
       isMounted = false;
       unsubscribe();
     };
-  }, [targetRestId]);
+  }, [targetRestId, soundEnabled]);
 
   const updateStatus = async (orderId, newStatus) => {
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
@@ -1083,12 +1116,24 @@ function KitchenDashboard({ restaurant, onLogout }) {
         React.createElement("p", { className: "text-xs text-stone-400 font-medium mt-0.5" }, `${restaurant.name} (${targetRestId}) • Live KOT Stream`)
       ),
       React.createElement(
-        "button",
-        {
-          onClick: onLogout,
-          className: "px-3.5 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold transition-colors"
-        },
-        "Exit Kitchen"
+        "div",
+        { className: "flex items-center gap-2" },
+        React.createElement(
+          "button",
+          {
+            onClick: () => setSoundEnabled((enabled) => !enabled),
+            className: `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${soundEnabled ? "bg-emerald-700 text-white" : "bg-stone-800 text-stone-300 hover:bg-stone-700"}`
+          },
+          soundEnabled ? "🔔 Sound On" : "🔕 Enable Sound"
+        ),
+        React.createElement(
+          "button",
+          {
+            onClick: onLogout,
+            className: "px-3.5 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold transition-colors"
+          },
+          "Exit Kitchen"
+        )
       )
     ),
     React.createElement(
