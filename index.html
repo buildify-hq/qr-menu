@@ -1,0 +1,19 @@
+<!doctype html><html lang="mr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0f5c4d"><title>QR Menu</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:#f4f6f3;color:#1b1f23;padding-bottom:90px}
+header{background:#0f5c4d;color:#fff;padding:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+h3{margin:14px 12px 4px}.c{text-align:center;padding:20px}.c input,.card>input,.card>select{display:block;width:100%;margin:6px 0}
+input,select,button{font:inherit;padding:10px;border:1px solid #d5dad3;border-radius:8px;background:#fff;color:inherit}
+button{cursor:pointer}.p{background:#0f5c4d;color:#fff;border:0}.g{background:#2b8a3e;color:#fff;border:0}.x{background:#d6336c;color:#fff;border:0}
+.card{background:#fff;border:1px solid #e3e7e0;border-radius:12px;padding:12px;margin:8px 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;padding:0 6px}.grid .card{margin:6px}.m{text-align:center}.e{font-size:44px}.off{opacity:.45}
+.q{display:flex;gap:12px;justify-content:center;align-items:center}.r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:8px;border-top:1px solid #d5dad3}.bar input{flex:1;min-width:0}
+.bell{position:fixed;right:12px;bottom:80px;border-radius:50%;width:52px;height:52px;font-size:24px;padding:0;background:#f5b301;border:0}
+.tag{padding:2px 8px;border-radius:99px;background:#fff1c2;font-size:12px}nav{display:flex;gap:6px;padding:8px 12px;overflow-x:auto}
+.qr{display:inline-block;text-align:center;margin:8px}a{color:#0f5c4d}
+@media print{header,nav,button{display:none}}
+</style></head><body><div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="config.js"></script><script src="app.js"></script></body></html>
