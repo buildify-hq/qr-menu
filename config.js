@@ -1,1 +1,1 @@
-window.CFG={URL:"",KEY:""};
+window.CFG={URL:""https://qubvrqybbofdppxvgqci.supabase.co""};
