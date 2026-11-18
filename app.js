@@ -90,7 +90,7 @@ async function staffView(){
    +`<div class="sectionhead"><h3>Ready to serve</h3></div>`+(os.filter(o=>o.status==='ready').map(o=>card(o,b(o,'served','Mark served'))).join('')||'<div class="panel empty">Nothing ready yet.</div>')
    +`<div class="sectionhead"><h3>Tables</h3><span>Open a table to get its PIN</span></div><div class="grid">${Array.from({length:d.tables},(_,i)=>{const t=String(i+1),s=d.sessions.find(x=>x.tbl===t),u=os.some(o=>o.tbl===t&&!o.bill_id);return`<div class="tbl ${s?'busy':''}"><b>${t}</b>${s?`<div class="pin">${s.pin}</div>`:''}${u?`<button class="btn green" onclick="payUI('${t}')">Bill</button>`:''}${s?`<button class="btn gray" onclick="tblClose('${t}')">Close</button>`:`<button class="btn" onclick="tblOpen('${t}')">Open</button>`}</div>`}).join('')}</div>`}
   shell(S.rname+' · '+S.name,h)};
- clearInterval(poll);await draw();poll=setInterval(draw,5000);window._draw=draw}
+ clearInterval(poll);await draw();poll=setInterval(()=>{if(!document.hidden)draw()},10000);window._draw=draw}
 async function setSt(id,st){await rpc('staff_set',{c:S.c,p:S.p,oid:id,st});_draw()}
 async function callDone(id){await rpc('call_done',{c:S.c,p:S.p,cid:id});_draw()}
 async function tblOpen(t){await rpc('open_table',{c:S.c,p:S.p,t});_draw()}
@@ -113,9 +113,10 @@ async function customerView(code,t){
   const up=async()=>{let st;try{st=await rpc('order_status',{oid})}catch(e){return}const i=L.indexOf(st);if(st==='served'||st==='cancelled')clearInterval(pl);
    shell(info.name,`<h1 class="page-title">${N[st]||st}</h1><div class="steps">${L.map((s,j)=>`<i class="${j<=i?'on':''}"></i>`).join('')}</div><button class="btn" style="width:100%;margin-bottom:10px" id="bell">🔔 Call waiter</button><button class="btn gray" style="width:100%" id="more">Order more</button>`);
    $('bell').onclick=async()=>{try{await rpc('ring',{c:code,t,p:pin});toast('Waiter is on the way.')}catch(e){}};$('more').onclick=()=>{clearInterval(pl);draw()}};
-  up();pl=setInterval(up,4000)};
+  up();pl=setInterval(()=>{if(!document.hidden)up()},8000)};
  draw()}
 /* ---------- Start ---------- */
 const qp=new URLSearchParams(location.search);
 if(qp.get('r')&&qp.get('t'))customerView(qp.get('r').toLowerCase(),qp.get('t'));else boot();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S&&window._draw)_draw()});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
