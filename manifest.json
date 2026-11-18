@@ -1,1 +1,9 @@
-{"name":"QR Menu","short_name":"QR Menu","start_url":".","display":"standalone","background_color":"#f4f6f3","theme_color":"#0f5c4d","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
+{
+  "name": "SJ Restaurant",
+  "short_name": "SJ Restaurant",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0e1426",
+  "theme_color": "#101528",
+  "icons": []
+}
