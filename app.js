@@ -8,14 +8,12 @@ const shell=(title,body)=>view(`<header class="topbar"><div class="mini">SJ</div
 let R=null,S=null,poll=null,T='orders';
 async function logout(){clearInterval(poll);S=null;R=null;await sb.auth.signOut();loginView()}
 /* ---------- Login ---------- */
-const IC={mail:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1zm1.5 2L12 12.2 19.5 7h-15zM4 9.4V17h16V9.4l-8 5.5-8-5.5z"/></svg>',lock:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1zm2 0h8V8a4 4 0 10-8 0v2z"/></svg>',store:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16l2 5a3 3 0 01-2 2.8V20H4v-8.2A3 3 0 012 9l2-5zm2 9v5h12v-5H6z"/></svg>'};
-const fw=(ic,inner)=>`<div class="fw"><span>${IC[ic]}</span>${inner}</div>`;
 function loginView(){
- view(`<div class="login-wrap" style="max-width:440px"><img class="logo" src="logo.png" alt="SJ Digital Labs"><h1>SJ Restaurant</h1><p class="sub">Login to manage your restaurant</p><div class="seg"><button id="tO" class="on">Owner / Admin</button><button id="tS">Staff</button></div><form class="login-card" id="f"></form></div>`);
- const f=$('f'),btn='<button class="primary">Login &nbsp;⇥</button>';
- const own=()=>{f.innerHTML=`<label class="label">Email</label>${fw('mail','<input name="e" type="email" placeholder="Enter your email" autocomplete="username" required>')}<label class="label">6-Digit PIN / Password</label>${fw('lock','<input name="p" type="password" placeholder="Enter PIN or Password" autocomplete="current-password" required>')}${btn}`;
-  f.onsubmit=async e=>{e.preventDefault();const d=new FormData(f);const{error}=await sb.auth.signInWithPassword({email:d.get('e').trim(),password:d.get('p')});if(error)return toast(error.message==='Invalid login credentials'?'Wrong email or PIN.':error.message);boot()}};
- const stf=()=>{f.innerHTML=`<label class="label">Restaurant code</label>${fw('store','<input name="c" placeholder="Enter restaurant code" autocapitalize="none" required>')}<label class="label">Staff PIN</label>${fw('lock','<input name="p" type="password" inputmode="numeric" placeholder="Enter PIN" required>')}${btn}`;
+ view(`<div class="login-wrap" style="max-width:440px"><div class="brand">SJ<small>RESTAURANT</small></div><h1>SJ Restaurant</h1><p class="sub">Sign in to continue</p><div class="seg"><button id="tO" class="on">Owner / Admin</button><button id="tS">Staff</button></div><form class="login-card" id="f"></form></div>`);
+ const f=$('f');
+ const own=()=>{f.innerHTML=`<label class="label">Email</label><input class="field" name="e" type="email" autocomplete="username" required><label class="label">Password</label><input class="field" name="p" type="password" autocomplete="current-password" required><button class="primary">Sign in</button>`;
+  f.onsubmit=async e=>{e.preventDefault();const d=new FormData(f);const{error}=await sb.auth.signInWithPassword({email:d.get('e').trim(),password:d.get('p')});if(error)return toast(error.message);boot()}};
+ const stf=()=>{f.innerHTML=`<label class="label">Restaurant code</label><input class="field" name="c" autocapitalize="none" required><label class="label">Staff PIN</label><input class="field" name="p" type="password" inputmode="numeric" required><button class="primary">Sign in</button>`;
   f.onsubmit=async e=>{e.preventDefault();const d=new FormData(f),c=d.get('c').trim().toLowerCase(),p=d.get('p').trim();const r=await rpc('staff_login',{c,p});if(!r)return toast('Wrong code or PIN.');S={c,p,...r};staffView()}};
  $('tO').onclick=()=>{$('tO').className='on';$('tS').className='';own()};$('tS').onclick=()=>{$('tS').className='on';$('tO').className='';stf()};own()}
 async function boot(){
