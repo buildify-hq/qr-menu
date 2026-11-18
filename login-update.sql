@@ -22,6 +22,6 @@ if length(pin)<6 then raise exception 'PIN must be at least 6 digits';end if;
 perform _set_owner(c,pin);end$$;
 -- Owner (demo): Shop Name = demo, PIN = 739204
 select _set_owner('demo','739204');
--- Super Admin: Shop Name = admin, PIN = 482916 (ईमेल sj201250@gmail.com)
-update auth.users set encrypted_password=extensions.crypt('482916',extensions.gen_salt('bf')),email_confirmed_at=coalesce(email_confirmed_at,now()) where lower(email)='sj201250@gmail.com';
+-- Super Admin: Shop Name = admin, PIN = 482916 (ईमेल sj201205@gmail.com)
+update auth.users set encrypted_password=extensions.crypt('482916',extensions.gen_salt('bf')),email_confirmed_at=coalesce(email_confirmed_at,now()) where lower(email)='sj201205@gmail.com';
 select email from auth.users;

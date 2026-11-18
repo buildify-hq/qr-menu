@@ -51,8 +51,8 @@ update table_sessions set closed=true where rid=v and tbl=t;n:=lpad((floor(rando
 insert into table_sessions(rid,tbl,pin) values(v,t,n);return n;end$$;
 create function close_table(c text,p text,t text) returns void language sql security definer set search_path=public as $$update table_sessions set closed=true where rid=staff_rid(c,p) and tbl=t$$;
 -- Super Admin आणि demo
-insert into admins values('sj201250@gmail.com');
-insert into restaurants(name,code,owner_email) values('Demo Hotel','demo','sj201250@gmail.com');
+insert into admins values('sj201205@gmail.com');
+insert into restaurants(name,code,owner_email) values('Demo Hotel','demo','sj201205@gmail.com');
 insert into menu(rid,name,emoji,price,cat) select id,'Paneer Masala','🍛',180,'Main Course' from restaurants where code='demo';
 insert into menu(rid,name,emoji,price,cat) select id,'Momos','🥟',90,'Starters' from restaurants where code='demo';
 insert into menu(rid,name,emoji,price,cat) select id,'Cold Drink','🥤',40,'Drinks' from restaurants where code='demo';

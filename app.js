@@ -14,7 +14,7 @@ function loginView(){
  view(`<div class="login-wrap" style="max-width:440px"><img class="logo" src="logo.png" alt="SJ Digital Labs"><h1>SJ Restaurant</h1><p class="sub">Login to manage your restaurant</p><form class="login-card" id="f"><label class="label">Shop Name</label>${fw('store','<input name="n" placeholder="Enter your restaurant name or code" autocapitalize="none" autocomplete="username" required>')}<label class="label">6-Digit PIN / Password</label>${fw('lock','<input name="p" type="password" placeholder="Enter PIN or Password" autocomplete="current-password" required>')}<button class="primary">Login &nbsp;⇥</button></form></div>`);
  $('f').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target),n=d.get('n').trim(),p=d.get('p').trim();
   const si=async em=>{const{error}=await sb.auth.signInWithPassword({email:em,password:p});if(error)return false;boot();return true};
-  if(n.toLowerCase()==='admin'){if(!await si('sj201250@gmail.com'))toast('Wrong PIN.');return}
+  if(n.toLowerCase()==='admin'){if(!await si('sj201205@gmail.com'))toast('Wrong PIN.');return}
   let r;try{r=await rpc('rest_resolve',{c:n})}catch(x){return}
   if(!r)return toast('Restaurant not found. Check the name or code.');
   if(await si(r.email))return;
