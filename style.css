@@ -100,3 +100,4 @@ button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!impo
 .sheetbox{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:20px;width:min(100%,420px);max-height:92vh;overflow:auto}
 a.btn{text-decoration:none;display:inline-block}.tbl .btn{width:100%;margin-top:6px}.row{flex-wrap:wrap}
 @media print{body>*:not(#sheet){display:none!important}.sheet{position:static;background:#fff;padding:0}.sheetbox{background:#fff;color:#000;border:0}.orderactions{display:none}}
+.mi .btn{padding:10px 12px;font-size:13px}.mi .emoji{font-size:26px}
