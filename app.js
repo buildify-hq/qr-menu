@@ -78,15 +78,37 @@ const PG={
 home:async()=>{const t=ymd(new Date()),[a,b]=dayR(t),bs=await getBills(a,b),{data:os}=await sb.from('orders').select('status').eq('rid',R.id).gte('created_at',a),h=new Date().getHours(),live=(os||[]).filter(o=>['new','preparing','ready'].includes(o.status)).length;
  $('pg').innerHTML=`<div class="welcome"><div><div class="eyebrow">${h<12?'Good morning':h<17?'Good afternoon':'Good evening'}</div><h2>${esc(R.name)}</h2><p>Here is your restaurant overview.</p></div><div class="welcomeicon">🍽️</div></div><div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat"><div class="statlabel">Today's sales</div><div class="statvalue">${money(sum(bs))}</div><div class="statfoot">${bs.length} bills</div></div><div class="stat"><div class="statlabel">Live orders</div><div class="statvalue">${live}</div><div class="statfoot">${(os||[]).length} orders today</div></div></div><div class="inline" style="margin:10px 0"><button class="btn green" style="flex:1" onclick="go('orders')">🧾 Live orders</button><button class="btn" style="flex:1" onclick="go('closing')">🔒 Day closing</button></div><div class="sectionhead"><h3>Quick actions</h3><span>Shortcuts</span></div><div class="actions">${[['menu','📖','My Menu'],['menu','＋','Add Item'],['sales','📊','Reports'],['history','🕘','History']].map(x=>`<button class="action" onclick="go('${x[0]}')"><span class="actionicon">${x[1]}</span>${x[2]}</button>`).join('')}</div>`},
 
-orders:async()=>{const[a]=dayR(ymd(new Date()));const{data}=await sb.from('orders').select('*').eq('rid',R.id).gte('created_at',a).order('created_at',{ascending:false});const o=data||[];
- $('pg').innerHTML=`<h1 class="page-title">Orders</h1>`+(o.map(x=>`<article class="ordercard"><div class="orderhead"><strong>${tn(x.tbl)} · ${new Date(x.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</strong><span class="pill ${x.status}">${x.status}</span></div><div class="orderitems">${x.items.map(i=>`${esc(i.name)} × ${i.qty}`).join('<br>')}${x.note?`<br><small>Note: ${esc(x.note)}</small>`:''}</div><div class="totalrow"><span>${x.bill_id?'Paid ✓':'Unpaid'}</span><span>${money(x.total)}</span></div></article>`).join('')||'<div class="panel empty">No orders yet today.</div>')},
+/* ============ ORDERS (Live) — डिलीट बटनसह ============ */
+orders:async()=>{
+  const[a]=dayR(ymd(new Date()));
+  const{data}=await sb.from('orders').select('*').eq('rid',R.id).gte('created_at',a).order('created_at',{ascending:false});
+  const o=data||[];
+  
+  $('pg').innerHTML=`<h1 class="page-title">Orders</h1>`+(o.map(x=>`
+    <article class="ordercard">
+      <div class="orderhead">
+        <strong>${tn(x.tbl)} · ${new Date(x.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</strong>
+        <span class="pill ${x.status}">${x.status}</span>
+      </div>
+      <div class="orderitems">
+        ${x.items.map(i=>`${esc(i.name)} × ${i.qty}`).join('<br>')}
+        ${x.note?`<br><small>Note: ${esc(x.note)}</small>`:''}
+      </div>
+      <div class="totalrow" style="border:none;padding:0;margin-top:10px;align-items:center">
+        <span>${x.bill_id?'Paid ✓':'Unpaid'}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span>${money(x.total)}</span>
+          <button class="btn red" style="padding:8px 12px;font-size:14px" onclick="delOrder('${x.id}')" aria-label="Delete">🗑</button>
+        </div>
+      </div>
+    </article>
+  `).join('')||'<div class="panel empty">No orders yet today.</div>')},
 
-/* ============ MENU — 3 विभाग (Veg / Non-Veg / Drinks) ============ */
+/* ============ MENU — 3 विभाग ============ */
 menu:async()=>{
   const{data}=await sb.from('menu').select('*').eq('rid',R.id).order('cat');
   const items=(data||[]);
 
-  /* जुने items ज्यांना type नाही, त्यांना auto-detect करून DB मध्ये save करा */
   items.filter(m=>!m.type).forEach(m=>{
     m.type = detectType(m.name);
     sb.from('menu').update({type:m.type}).eq('id',m.id).then(()=>{});
@@ -123,12 +145,7 @@ menu:async()=>{
   </section>`;
 
   const fm=$('mf').elements,fn=fm.n,ft=fm.t;
-  /* नाव टाइप करताच type auto-select होईल */
-  fn.oninput=()=>{
-    const detected=detectType(fn.value);
-    ft.value=detected;
-  };
-
+  fn.oninput=()=>{ const detected=detectType(fn.value); ft.value=detected; };
   $('ms').oninput=e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.mi').forEach(x=>x.style.display=x.dataset.n.includes(q)?'':'none')};
 
   $('mf').onsubmit=async e=>{
@@ -149,8 +166,33 @@ menu:async()=>{
   };
 },
 
-history:async()=>{const[a,b]=dayR(HD);BL=await getBills(a,b);
- $('pg').innerHTML=`<h1 class="page-title">History</h1><div class="inline" style="margin-bottom:12px;flex-wrap:nowrap"><button class="btn gray" onclick="hd(-1)" aria-label="Previous day">‹</button><input class="field" type="date" value="${HD}" onchange="HD=this.value||HD;go('history')"><button class="btn gray" onclick="hd(1)" aria-label="Next day">›</button></div><div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat"><div class="statlabel">Sales</div><div class="statvalue">${money(sum(BL))}</div></div><div class="stat"><div class="statlabel">Bills</div><div class="statvalue">${BL.length}</div></div></div>`+(BL.map((x,i)=>`<button class="row" style="width:100%;color:inherit;text-align:left" onclick="billSheet(BL[${i}],R.name)"><div class="grow"><b>${tn(x.tbl)}</b><br><small>${new Date(x.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · ${esc(x.mode)}</small></div><b>${money(x.total)}</b></button>`).join('')||'<div class="panel empty">No records for this day.</div>')},
+/* ============ HISTORY — डिलीट बटनसह ============ */
+history:async()=>{
+  const[a,b]=dayR(HD);
+  BL=await getBills(a,b);
+  
+  $('pg').innerHTML=`<h1 class="page-title">History</h1>
+  <div class="inline" style="margin-bottom:12px;flex-wrap:nowrap">
+    <button class="btn gray" onclick="hd(-1)" aria-label="Previous day">‹</button>
+    <input class="field" type="date" value="${HD}" onchange="HD=this.value||HD;go('history')">
+    <button class="btn gray" onclick="hd(1)" aria-label="Next day">›</button>
+  </div>
+  <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    <div class="stat"><div class="statlabel">Sales</div><div class="statvalue">${money(sum(BL))}</div></div>
+    <div class="stat"><div class="statlabel">Bills</div><div class="statvalue">${BL.length}</div></div>
+  </div>`+
+  (BL.map((x,i)=>`
+    <div class="row" style="justify-content:space-between">
+      <div class="grow" style="cursor:pointer" onclick="billSheet(BL[${i}],R.name)">
+        <b>${tn(x.tbl)}</b><br>
+        <small>${new Date(x.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · ${esc(x.mode)}</small>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <b>${money(x.total)}</b>
+        <button class="btn red" style="padding:8px 12px;font-size:14px" onclick="delBill('${x.id}')" aria-label="Delete">🗑</button>
+      </div>
+    </div>
+  `).join('')||'<div class="panel empty">No records for this day.</div>')},
 
 sales:async()=>{const n=+(window._rg||1),end=new Date(),st=new Date();end.setDate(end.getDate()+1);st.setDate(st.getDate()-(n-1));const bs=await getBills(dayR(ymd(st))[0],dayR(ymd(end))[0]),top={};
  bs.forEach(b=>(b.items||[]).forEach(i=>{top[i.name]=(top[i.name]||0)+i.qty}));const tl=Object.entries(top).sort((x,y)=>y[1]-x[1]).slice(0,5);
@@ -167,9 +209,29 @@ staff:async()=>{const{data}=await sb.from('staff').select('*').eq('rid',R.id);
 qr:async()=>{const base=location.origin+location.pathname;
  $('pg').innerHTML=`<h1 class="page-title">QR Codes</h1><div class="grid">${Array.from({length:R.tables},(_,i)=>{const u=`${base}?r=${encodeURIComponent(R.code)}&t=${i+1}`;return`<div class="qrc"><img alt="QR table ${i+1}" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(u)}">Table ${i+1}</div>`}).join('')}</div><p class="note">A copied QR is useless from home: ordering needs the table PIN your waiter gives.</p><button class="btn" style="margin-top:10px" onclick="print()">Print QR codes</button>`}
 };
+
 async function mAv(id,v){await sb.from('menu').update({available:v}).eq('id',id);go('menu')}
 async function mDel(id){if(confirm('Delete this item?')){await sb.from('menu').delete().eq('id',id);go('menu')}}
 async function sDel(id){if(confirm('Remove this staff member?')){await sb.from('staff').delete().eq('id',id);go('staff')}}
+
+/* ऑर्डर डिलीट करण्यासाठी */
+async function delOrder(id){
+  if(confirm('ही ऑर्डर डिलीट करायची आहे का?')){
+    const{error}=await sb.from('orders').delete().eq('id',id);
+    if(error) return toast(error.message);
+    toast('ऑर्डर डिलीट झाली');
+    go('orders');
+  }
+}
+/* बिल (History) डिलीट करण्यासाठी */
+async function delBill(id){
+  if(confirm('हे बिल डिलीट करायचे आहे का? हे पुन्हा मिळणार नाही.')){
+    const{error}=await sb.from('bills').delete().eq('id',id);
+    if(error) return toast(error.message);
+    toast('बिल डिलीट झाले');
+    go('history');
+  }
+}
 
 function billSheet(b,name){const m={};(b.items||[]).forEach(i=>{const k=i.name+'|'+i.price;m[k]=m[k]||{...i,qty:0};m[k].qty+=i.qty});const L=Object.values(m),when=new Date(b.created_at).toLocaleString();
  const txt=`*${name}*\nTable ${b.tbl} · ${when}\n`+L.map(i=>`${i.name} x${i.qty} = ${money(i.price*i.qty)}`).join('\n')+`\nDiscount: ${money(b.discount)}\n*Total: ${money(b.total)}* (${b.mode})\nThank you, visit again!`;
@@ -193,6 +255,7 @@ async function tblOpen(t){await rpc('open_table',{c:S.c,p:S.p,t});_draw()}
 function payUI(t){const os=_d.orders.filter(o=>o.tbl===t&&!o.bill_id),sub=sum(os);$('sheet').innerHTML=`<div class="sheetbox"><h3 style="margin:0 0 10px">Table ${esc(t)} · Bill</h3>${os.map(o=>o.items.map(i=>`<div class="row" style="margin:4px 0"><div class="grow">${esc(i.name)} × ${i.qty}</div><b>${money(i.price*i.qty)}</b></div>`).join('')).join('')}<div class="totalrow"><span>Subtotal</span><span>${money(sub)}</span></div><label class="label" style="margin-top:12px">Discount (₹)</label><input class="field" id="dsc" type="number" min="0" value="0" inputmode="numeric"><div class="label">Collect payment</div><div class="orderactions">${['Cash','UPI','Card'].map(m=>`<button class="btn green" onclick="payTable('${t}','${m}')">${m}</button>`).join('')}<button class="btn gray" onclick="$('sheet').innerHTML=''">Cancel</button></div></div>`}
 async function payTable(t,m){try{const b=await rpc('pay_table',{c:S.c,p:S.p,t,mode:m,disc:+$('dsc').value||0});billSheet(b,S.rname);_draw()}catch(e){}}
 async function tblClose(t){await rpc('close_table',{c:S.c,p:S.p,t});_draw()}
+
 /* ---------- Customer (QR) ---------- */
 async function customerView(code,t){
  const info=await rpc('rest_info',{c:code});if(!info)return view('<div class="login-wrap"><h1>Restaurant not found</h1></div>');
@@ -203,7 +266,7 @@ async function customerView(code,t){
    $('bk').onclick=()=>{checkout=false;draw()};
    $('go').onclick=async()=>{pin=$('pin').value.trim();if(pin.length!==4)return toast('Enter the 4-digit table PIN.');try{oid=await rpc('place_order',{c:code,t,p:pin,its:menu.filter(m=>cart[m.id]).map(m=>({id:m.rid||m.id,sz:m.sz||'',qty:cart[m.id]})),nt:$('nt').value});cart={};checkout=false;track()}catch(e){}};return}
   const cats=[...new Set(menu.map(m=>m.cat))];
-  shell(info.name,`<h1 class="page-title">Table ${esc(t)} · Menu</h1>${cats.map(c=>`<div class="cat">${esc(c)}</div>`+menu.filter(m=>m.cat===c).map(m=>`<div class="row"><span class="emoji">${esc(m.emoji)}</span><div class="grow">${vd(m)}<b>${esc(m.name)}</b><br><small>${money(m.price)}</small></div><div class="qty"><button onclick="chg('${m.id}',-1)" aria-label="Remove">−</button><b>${cart[m.id]||0}</b><button onclick="chg('${m.id}',1)" aria-label="Add">+</button></div></div>`).join('')).join('')}<div style="height:90px"></div>${cnt()?`<button class="cartbar" onclick="goCk()"><span>${cnt()} items</span><span>View order · ${money(tot())}</span></button>`:''}`)};
+  shell(info.name,`<h1 class="page-title">Table ${esc(t)} · Menu</h1>${cats.map(c=>`<div class="cat">${esc(c)}</div>`+menu.filter(m=>m.cat===c).map(m=>`<div class="row"><div class="grow">${vd(m)}<b>${esc(m.name)}</b><br><small>${money(m.price)}</small></div><div class="qty"><button onclick="chg('${m.id}',-1)" aria-label="Remove">−</button><b>${cart[m.id]||0}</b><button onclick="chg('${m.id}',1)" aria-label="Add">+</button></div></div>`).join('')).join('')}<div style="height:90px"></div>${cnt()?`<button class="cartbar" onclick="goCk()"><span>${cnt()} items</span><span>View order · ${money(tot())}</span></button>`:''}`)};
  window.chg=(id,d)=>{cart[id]=Math.max(0,(cart[id]||0)+d);draw()};window.goCk=()=>{checkout=true;draw()};
  let pl;const track=()=>{clearInterval(pl);const L=['new','preparing','ready','served'],N={new:'Order received',preparing:'Being prepared',ready:'Ready — coming to your table',served:'Served. Enjoy your meal!',cancelled:'Order cancelled'};
   const up=async()=>{let st;try{st=await rpc('order_status',{oid})}catch(e){return}const i=L.indexOf(st);if(st==='served'||st==='cancelled')clearInterval(pl);
@@ -211,6 +274,7 @@ async function customerView(code,t){
    $('bell').onclick=async()=>{try{await rpc('ring',{c:code,t,p:pin});toast('Waiter is on the way.')}catch(e){}};$('more').onclick=()=>{clearInterval(pl);draw()}};
   up();pl=setInterval(()=>{if(!document.hidden)up()},8000)};
  draw()}
+
 /* ---------- Start ---------- */
 const qp=new URLSearchParams(location.search);
 if(qp.get('r')&&qp.get('t'))customerView(qp.get('r').toLowerCase(),qp.get('t'));else boot();
