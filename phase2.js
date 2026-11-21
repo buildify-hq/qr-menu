@@ -1,4 +1,3 @@
-// phase2.js — पूर्ण दुरुस्त फाईल
 /* SJ Restaurant - Phase 2: Dues/Udhaar, Expenses, Accounts, Floors, Audit log, Staff roles */
 (function(){
 const r2=n=>Math.round(n*100)/100,CATS=['Raw material','Salary','Rent','Gas / Electricity','Repair','Packaging','Other'],MODES=['Cash','UPI','Card'];
