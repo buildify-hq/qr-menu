@@ -86,4 +86,65 @@ const dvLoad=async()=>{const{data}=await sb.from('riders').select('*').eq('rid',
 PG.deliv=async()=>{await dvLoad();const n=+(window._dv||1),{data}=await sb.from('deliveries').select('*').eq('rid',R.id).gte('created_at',dayR(ymd(startOf(n)))[0]).order('created_at',{ascending:false}),L=data||[],ids=L.map(d=>d.order_id).filter(Boolean);OS={};
  if(ids.length){const{data:o}=await sb.from('orders').select('id,status').in('id',ids);(o||[]).forEach(x=>OS[x.id]=x.status)}
  const card=d=>{const rd=RD.find(r=>r.id===d.rider_id),act=d.status==='new'||d.status==='out',kd=d.status==='new'?'Kitchen: '+(OS[d.order_id]||'new'):d.status;
-  return`<div class="panel" style="margin-bottom:10px"><div class="orderhead"><strong>🛵 D${d.no} · ${esc(d.cust_name)}</strong><span class="pill">${esc(kd)}</span></div><div class="orderitems">${(d.items||[]).map(i=>esc(i.name)+' ×'+i.qty).join(', ')}</div><small>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a> · `:''}${d.address?`<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}">${esc(d.address)}</a>`:'No address'}</small><div class="totalrow"><span>${rd?'Rider: '+esc(rd.name):'No rider yet'}${d.mode?' · '+esc(d.mode):''}</span><span>${money(d.total)}</span></div>${act?`<div class="orderactions">${d.status==='new'?`<button class="btn green" onclick="dvDispatch('${d.id}')">Dispatch</button>`:`<button class="btn green" onclick="dvDone('${d.id}')">Delivered</button>${d.phone?`<a class="btn
+  return`<div class="panel" style="margin-bottom:10px"><div class="orderhead"><strong>🛵 D${d.no} · ${esc(d.cust_name)}</strong><span class="pill">${esc(kd)}</span></div><div class="orderitems">${(d.items||[]).map(i=>esc(i.name)+' ×'+i.qty).join(', ')}</div><small>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a> · `:''}${d.address?`<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}">${esc(d.address)}</a>`:'No address'}</small><div class="totalrow"><span>${rd?'Rider: '+esc(rd.name):'No rider yet'}${d.mode?' · '+esc(d.mode):''}</span><span>${money(d.total)}</span></div>${act?`<div class="orderactions">${d.status==='new'?`<button class="btn green" onclick="dvDispatch('${d.id}')">Dispatch</button>`:`<button class="btn green" onclick="dvDone('${d.id}')">Delivered</button>${d.phone?`<a class="btn gray" target="_blank" rel="noopener" href="https://wa.me/${phn(d.phone)}?text=${encodeURIComponent('Your order from '+R.name+' is on the way'+(rd?' with '+rd.name+(rd.phone?' ('+rd.phone+')':''):'')+'.')}">💬</a>`:''}`}<button class="btn red" onclick="dvCancel('${d.id}')">Cancel</button></div>`:''}</div>`};
+ const A=L.filter(d=>d.status==='new'||d.status==='out'),D=L.filter(d=>!(d.status==='new'||d.status==='out'));
+ pg(`<h1 class="page-title">Deliveries</h1><button class="btn" style="width:100%;margin-bottom:12px" onclick="dvNew()">＋ New delivery</button>${tabs('_dv',n,'deliv')}<div class="sectionhead"><h3>Active</h3><span>${A.length}</span></div>${A.map(card).join('')||'<div class="panel empty">No active deliveries.</div>'}<div class="sectionhead"><h3>Done</h3><span>${D.length}</span></div>${D.map(card).join('')||'<div class="panel empty">Nothing yet.</div>'}`)};
+const dvTot=()=>{let s=0;DM.forEach(m=>s+=(DC[m.id]||0)*m.price);if($('dvt'))$('dvt').textContent=money(s)};
+window.dvList=()=>{const q=($('dvq').value||'').toLowerCase();$('dl').innerHTML=DM.filter(m=>m.name.toLowerCase().includes(q)).map(m=>`<div class="row"><div class="grow">${esc(m.name)}<br><small>${money(m.price)}</small></div><button class="btn gray" onclick="dvChg('${m.id}',-1)" aria-label="Less">−</button><b style="min-width:22px;text-align:center">${DC[m.id]||0}</b><button class="btn" onclick="dvChg('${m.id}',1)" aria-label="More">＋</button></div>`).join('');dvTot()};
+window.dvChg=(k,d)=>{DC[k]=Math.max(0,Math.min(50,(DC[k]||0)+d));dvList()};
+window.dvNew=async()=>{const{data}=await sb.from('menu').select('*').eq('rid',R.id).eq('available',true).order('cat').order('name');DM=expandSizes(data||[]);DC={};
+ sheet(`<h3 style="margin:0 0 10px">🛵 New delivery</h3><input class="field" id="dvn" placeholder="Customer name" maxlength="60"><input class="field" id="dvp" inputmode="numeric" placeholder="Phone" maxlength="15"><textarea class="field" id="dva" placeholder="Address" rows="2" maxlength="250" style="height:auto;padding-top:12px"></textarea><input class="field" id="dvf" type="number" min="0" placeholder="Delivery charge ₹" value="0"><input class="field" id="dvq" placeholder="Search dish…" oninput="dvList()"><div id="dl"></div><div class="totalrow"><span>Items total</span><span id="dvt">₹0</span></div><input class="field" id="dvo" placeholder="Note (optional)" maxlength="200" style="margin-top:10px"><div class="orderactions"><button class="btn green" id="dvok">Place order</button><button class="btn gray" onclick="closeSheet()">Cancel</button></div>`);dvList();
+ ok('dvok',async()=>{const its=DM.filter(m=>DC[m.id]).map(m=>({id:m.rid||m.id,sz:m.sz||'',qty:DC[m.id]}));if(!$('dvn').value.trim())return toast('Enter customer name.');if(!its.length)return toast('Add at least one item.');
+  try{await rpc('delivery_create',{r_id:R.id,cn:$('dvn').value,ph:$('dvp').value,ad:$('dva').value,its,fee:+$('dvf').value||0,nt:$('dvo').value})}catch(e){return}cl();toast('Order sent to kitchen.');go('deliv')})};
+window.dvDispatch=id=>{const A=RD.filter(r=>r.active!==false);if(!A.length)return sheet(`<h3 style="margin:0 0 8px">No riders</h3><p class="note" style="text-align:left">Add a rider first.</p><div class="orderactions"><button class="btn green" onclick="closeSheet();go('riders')">Add rider</button><button class="btn gray" onclick="closeSheet()">Close</button></div>`);
+ sheet(`<h3 style="margin:0 0 8px">Dispatch</h3><label class="label">Rider</label><select class="field" id="dvr">${opt(A,'',r=>r.name)}</select><div class="orderactions"><button class="btn green" id="dok">Dispatch</button><button class="btn gray" onclick="closeSheet()">Cancel</button></div>`);
+ ok('dok',async()=>{try{await rpc('delivery_set',{r_id:R.id,d_id:id,st:'out',rd:$('dvr').value,pm:null})}catch(e){return}cl();go('deliv')})};
+window.dvDone=id=>{sheet(`<h3 style="margin:0 0 8px">Delivered · payment received</h3><div class="orderactions">${[...PAY,'Udhaar'].map(m=>`<button class="btn ${m==='Udhaar'?'red':'green'}" onclick="dvPay('${id}','${m}')">${m}</button>`).join('')}<button class="btn gray" onclick="closeSheet()">Cancel</button></div><p class="note" style="text-align:left">Udhaar adds the amount to the customer's dues.</p>`)};
+window.dvPay=async(id,m)=>{try{await rpc('delivery_set',{r_id:R.id,d_id:id,st:'delivered',rd:null,pm:m})}catch(e){return}const{data:d}=await sb.from('deliveries').select('bill_id').eq('id',id).single(),{data:b}=d?await sb.from('bills').select('*').eq('id',d.bill_id).single():{};go('deliv');if(b)billSheet(b,R.name);else cl()};
+window.dvCancel = async id => {
+  $('sheet').innerHTML = `<div class="sheetbox">
+    <h3 style="margin:0 0 8px">Cancel delivery?</h3>
+    <p class="note" style="text-align:left">The order will be marked as cancelled.</p>
+    <div class="popup-actions">
+      <button class="btn red" id="delok">Cancel delivery</button>
+      <button class="btn gray" onclick="$('sheet').innerHTML=''">Keep it</button>
+    </div>
+  </div>`;
+  $('delok').onclick = async () => {
+    try {
+      await rpc('delivery_set', { r_id: R.id, d_id: id, st: 'cancelled', rd: null, pm: null });
+    } catch (e) { return; }
+    $('sheet').innerHTML = '';
+    go('deliv');
+  };
+};
+/* ----- Riders ----- */
+PG.riders=async()=>{await dvLoad();const n=+(window._rr||1),{data}=await sb.from('deliveries').select('*').eq('rid',R.id).eq('status','delivered').not('rider_id','is',null).order('done_at',{ascending:false}).limit(1500),all=data||[],a=new Date(dayR(ymd(startOf(n)))[0]),per=all.filter(d=>new Date(d.done_at)>=a);window._dall=all;
+ const rc=id=>per.filter(d=>d.rider_id===id),hold=id=>all.filter(d=>d.rider_id===id&&d.mode==='Cash'&&!d.settled).reduce((s,d)=>s+ +d.total,0),days={};
+ per.forEach(d=>{const k=ymd(new Date(d.done_at)),r=RD.find(x=>x.id===d.rider_id);if(!r)return;const o=(days[k]=days[k]||{});const e=o[r.id]=o[r.id]||{n:r.name,c:0,e:0,v:0};e.c++;e.e+=+r.pay_per_run||0;e.v+=+d.total});
+ pg(`<h1 class="page-title">Riders</h1>${tabs('_rr',n,'riders')}${RD.map(r=>{const c=rc(r.id),h=hold(r.id);return`<div class="panel" style="margin-bottom:10px;${r.active===false?'opacity:.6':''}"><div class="orderhead"><strong>${esc(r.name)}${r.active===false?' (inactive)':''}</strong><button class="btn gray" onclick="rdEdit('${r.id}')" aria-label="Edit">✎</button></div><small>${esc(r.phone||'no phone')} · ₹${r2(r.pay_per_run||0)} per run</small><div class="totalrow"><span>Runs</span><span>${c.length}</span></div><div class="totalrow"><span>Earned</span><span>${money(r2(c.length*(+r.pay_per_run||0)))}</span></div><div class="totalrow"><span>Cash with rider</span><span style="color:${h>0?'var(--chili)':'inherit'}">${money(r2(h))}</span></div>${h>0?`<button class="btn green" style="width:100%;margin-top:8px" onclick="rdSettle('${r.id}')">Cash received · Settle</button>`:''}</div>`}).join('')||'<div class="panel empty">No riders yet.</div>'}<div class="sectionhead"><h3>Daily records</h3></div>${Object.keys(days).sort().reverse().map(k=>`<div class="panel" style="margin-bottom:8px"><b>${k}</b>${Object.values(days[k]).map(e=>`<div class="totalrow" style="font-size:14px"><span>${esc(e.n)} · ${e.c} runs</span><span>${money(r2(e.e))} · orders ${money(r2(e.v))}</span></div>`).join('')}</div>`).join('')||'<div class="panel empty">No runs in this period.</div>'}<section class="panel"><h3 style="margin:0 0 12px">Add rider</h3><form id="rf" class="inline"><input class="field" name="n" placeholder="Name" maxlength="60" required><input class="field" name="p" inputmode="numeric" placeholder="Phone" maxlength="15"><input class="field" name="a" type="number" min="0" step="any" placeholder="Pay per run ₹" value="0"><button class="btn">Add</button></form></section>`);
+ $('rf').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target),{error}=await sb.from('riders').insert({rid:R.id,name:d.get('n').trim(),phone:d.get('p').trim()||null,pay_per_run:+d.get('a')||0});if(error)return toast(error.message);go('riders')}};
+window.rdEdit=id=>{const r=RD.find(x=>x.id===id);sheet(`<h3 style="margin:0 0 8px">Edit rider</h3><input class="field" id="rn" value="${esc(r.name)}" maxlength="60"><input class="field" id="rp" inputmode="numeric" value="${esc(r.phone||'')}" placeholder="Phone" maxlength="15"><label class="label">Pay per run ₹</label><input class="field" id="ra" type="number" min="0" step="any" value="${r2(r.pay_per_run||0)}"><label class="label"><input type="checkbox" id="rac" style="width:auto;margin-right:8px" ${r.active===false?'':'checked'}>Active</label><div class="orderactions"><button class="btn green" id="rok">Save</button><button class="btn gray" onclick="closeSheet()">Cancel</button></div>`);
+ ok('rok',async()=>{const n=$('rn').value.trim();if(!n)return toast('Enter a name.');const{error}=await sb.from('riders').update({name:n,phone:$('rp').value.trim()||null,pay_per_run:+$('ra').value||0,active:$('rac').checked}).eq('id',id);if(error)return toast(error.message);cl();go('riders')})};
+window.rdSettle = async id => {
+  $('sheet').innerHTML = `<div class="sheetbox">
+    <h3 style="margin:0 0 8px">Settle cash?</h3>
+    <p class="note" style="text-align:left">All cash from this rider will be marked as received.</p>
+    <div class="popup-actions">
+      <button class="btn green" id="delok">Settle</button>
+      <button class="btn gray" onclick="$('sheet').innerHTML=''">Cancel</button>
+    </div>
+  </div>`;
+  $('delok').onclick = async () => {
+    const { error } = await sb.from('deliveries').update({ settled: true })
+      .eq('rider_id', id).eq('status', 'delivered').eq('mode', 'Cash').eq('settled', false);
+    if (error) return toast(error.message);
+    $('sheet').innerHTML = '';
+    toast('Settled.');
+    go('riders');
+  };
+};
+/* ----- Menu in drawer ----- */
+DR.push(['Inventory',[['stock','📦','Stock'],['recipes','🍳','Recipes'],['suppliers','🚚','Suppliers']]]);
+DR.push(['Delivery',[['deliv','🛵','Deliveries'],['riders','🏍️','Riders']]]);
+})();
