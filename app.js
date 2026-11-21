@@ -1,3 +1,4 @@
+// app.js — पूर्ण दुरुस्त फाईल
 const sb=supabase.createClient(CFG.URL,CFG.KEY),$=id=>document.getElementById(id),app=$('app');
 const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,10 +30,29 @@ async function boot(){
  await sb.auth.signOut();loginView();toast('No restaurant is linked to this email.')}
 /* ---------- Super Admin ---------- */
 function adminView(rs){
- shell('Super Admin',`<h1 class="page-title">Restaurants</h1>${rs.map(r=>`<div class="row"><div class="grow"><b>${esc(r.name)}</b><br><small>code: ${esc(r.code)} · ${r.tables} tables · valid till ${r.valid_till||'no limit'}</small></div><button class="btn gray" onclick='resetPin("${r.code}")' aria-label="Reset PIN">🔑</button><button class="btn gray" onclick='ext("${r.id}")'>+30d</button><button class="btn gray" onclick='openRest("${r.id}")'>Open</button><button class="btn ${r.active?'green':'red'}" onclick='togRest("${r.id}",${!r.active})'>${r.active?'Active':'Off'}</button></div>`).join('')}
+ shell('Super Admin',`<h1 class="page-title">Restaurants</h1>${rs.map(r=>`<div class="row"><div class="grow"><b>${esc(r.name)}</b><br><small>code: ${esc(r.code)} · ${r.tables} tables · valid till ${r.valid_till||'no limit'}</small></div><button class="btn gray" onclick='resetPin("${r.code}")' aria-label="Reset PIN">🔑</button><button class="btn gray" onclick='ext("${r.id}")'>+30d</button><button class="btn gray" onclick='openRest("${r.id}")'>Open</button><button class="btn ${r.active?'green':'red'}' onclick='togRest("${r.id}",${!r.active})'>${r.active?'Active':'Off'}</button></div>`).join('')}
  <section class="panel"><h3 style="margin:0 0 12px">Add restaurant</h3><form id="af" class="inline"><input class="field" name="n" placeholder="Name" required><input class="field" name="c" placeholder="Code (e.g. sagar)" pattern="[a-z0-9-]+" required><input class="field" name="o" inputmode="numeric" pattern="[0-9]{6,}" placeholder="Owner PIN (6 digits)" required><input class="field" name="t" type="number" min="1" max="100" value="10"><button class="btn">Add</button></form><p class="note">Owner signs in with the restaurant name or code and this PIN.</p></section>`);
  window._rs=rs;$('af').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target);const c=d.get('c').trim().toLowerCase();if(c==='admin')return toast('This code is reserved.');const{error}=await sb.from('restaurants').insert({name:d.get('n').trim(),code:c,owner_email:c+'@owner.sjr',tables:+d.get('t'),valid_till:ymd(new Date(Date.now()+30*864e5))});if(error)return toast(error.message);try{await rpc('admin_set_owner',{c,pin:d.get('o').trim()})}catch(x){return}toast('Restaurant added.');boot()}}
-async function resetPin(c){const p=prompt('New owner PIN for '+c+' (6+ digits)');if(!p)return;try{await rpc('admin_set_owner',{c,pin:p.trim()});toast('PIN updated.')}catch(x){}}
+async function resetPin(c){
+  $('sheet').innerHTML = `<div class="sheetbox">
+    <h3 style="margin:0 0 8px">New owner PIN</h3>
+    <label class="label">PIN for ${esc(c)} (6+ digits)</label>
+    <input class="field" id="newpin" inputmode="numeric" pattern="[0-9]{6,}" placeholder="Enter new PIN">
+    <div class="popup-actions">
+      <button class="btn green" id="savepin">Save</button>
+      <button class="btn gray" onclick="$('sheet').innerHTML=''">Cancel</button>
+    </div>
+  </div>`;
+  $('savepin').onclick = async () => {
+    const p = $('newpin').value.trim();
+    if (!p || p.length < 6) return toast('PIN must be at least 6 digits.');
+    try {
+      await rpc('admin_set_owner', { c, pin: p });
+      toast('PIN updated.');
+      $('sheet').innerHTML = '';
+    } catch (e) {}
+  };
+}
 async function ext(id){const r=window._rs.find(x=>x.id===id),b=r.valid_till&&r.valid_till>ymd(new Date())?new Date(r.valid_till+'T00:00:00'):new Date();b.setDate(b.getDate()+30);await sb.from('restaurants').update({valid_till:ymd(b)}).eq('id',id);toast('Valid till '+ymd(b));boot()}
 const openRest=id=>{R=window._rs.find(r=>r.id===id);ownerView()};
 async function togRest(id,v){await sb.from('restaurants').update({active:v}).eq('id',id);boot()}
@@ -77,8 +97,36 @@ staff:async()=>{const{data}=await sb.from('staff').select('*').eq('rid',R.id);
 qr:async()=>{const base=location.origin+location.pathname;
  $('pg').innerHTML=`<h1 class="page-title">QR Codes</h1><div class="grid">${Array.from({length:R.tables},(_,i)=>{const u=`${base}?r=${encodeURIComponent(R.code)}&t=${i+1}`;return`<div class="qrc"><img alt="QR table ${i+1}" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(u)}">Table ${i+1}</div>`}).join('')}</div><p class="note">A copied QR is useless from home: ordering needs the table PIN your waiter gives.</p><button class="btn" style="margin-top:10px" onclick="print()">Print QR codes</button>`}};
 async function mAv(id,v){await sb.from('menu').update({available:v}).eq('id',id);go('menu')}
-async function mDel(id){if(confirm('Delete this item?')){await sb.from('menu').delete().eq('id',id);go('menu')}}
-async function sDel(id){if(confirm('Remove this staff member?')){await sb.from('staff').delete().eq('id',id);go('staff')}}
+async function mDel(id){
+  $('sheet').innerHTML = `<div class="sheetbox">
+    <h3 style="margin:0 0 8px">Delete item?</h3>
+    <p class="note" style="text-align:left">This will permanently remove the item from the menu.</p>
+    <div class="popup-actions">
+      <button class="btn red" id="delok">Delete</button>
+      <button class="btn gray" onclick="$('sheet').innerHTML=''">Cancel</button>
+    </div>
+  </div>`;
+  $('delok').onclick = async () => {
+    await sb.from('menu').delete().eq('id', id);
+    $('sheet').innerHTML = '';
+    go('menu');
+  };
+}
+async function sDel(id){
+  $('sheet').innerHTML = `<div class="sheetbox">
+    <h3 style="margin:0 0 8px">Remove staff?</h3>
+    <p class="note" style="text-align:left">This will remove the staff member's access.</p>
+    <div class="popup-actions">
+      <button class="btn red" id="delok">Remove</button>
+      <button class="btn gray" onclick="$('sheet').innerHTML=''">Cancel</button>
+    </div>
+  </div>`;
+  $('delok').onclick = async () => {
+    await sb.from('staff').delete().eq('id', id);
+    $('sheet').innerHTML = '';
+    go('staff');
+  };
+}
 function billSheet(b,name){const m={};(b.items||[]).forEach(i=>{const k=i.name+'|'+i.price;m[k]=m[k]||{...i,qty:0};m[k].qty+=i.qty});const L=Object.values(m),when=new Date(b.created_at).toLocaleString();
  const txt=`*${name}*\nTable ${b.tbl} · ${when}\n`+L.map(i=>`${i.name} x${i.qty} = ${money(i.price*i.qty)}`).join('\n')+`\nDiscount: ${money(b.discount)}\n*Total: ${money(b.total)}* (${b.mode})\nThank you, visit again!`;
  $('sheet').innerHTML=`<div class="sheetbox"><h3 style="margin:0">${esc(name)}</h3><small>Table ${esc(b.tbl)} · ${when}</small><div style="margin:12px 0">${L.map(i=>`<div class="row" style="margin:4px 0"><div class="grow">${esc(i.name)} × ${i.qty}</div><b>${money(i.price*i.qty)}</b></div>`).join('')}</div><div class="totalrow" style="font-size:14px;font-weight:600"><span>Discount</span><span>${money(b.discount)}</span></div><div class="totalrow"><span>Total · ${esc(b.mode)}</span><span>${money(b.total)}</span></div><div class="orderactions" style="margin-top:14px"><button class="btn" onclick="print()">Print</button><a class="btn green" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt)}">WhatsApp</a><button class="btn gray" onclick="$('sheet').innerHTML=''">Close</button></div></div>`}
