@@ -101,3 +101,17 @@ button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!impo
 a.btn{text-decoration:none;display:inline-block}.tbl .btn{width:100%;margin-top:6px}.row{flex-wrap:wrap}
 @media print{body>*:not(#sheet){display:none!important}.sheet{position:static;background:#fff;padding:0}.sheetbox{background:#fff;color:#000;border:0}.orderactions{display:none}}
 .mi .btn{padding:10px 12px;font-size:13px}.mi .emoji{font-size:26px}
+
+/* ---- Light theme ---- */
+:root[data-theme=light]{--bg:#fbf6ef;--panel:#ffffff;--panel2:#f4ece1;--line:#e5dac9;--text:#2b2118;--muted:#6f6254;--saffron:#d98200;--chili:#c23b1f;--leaf:#2f8f46}
+[data-theme=light] #loginScreen{background:radial-gradient(ellipse at 50% 0,#f6dfc0 0,transparent 55%),var(--bg)}
+[data-theme=light] .topbar{background:#fffffff2}
+[data-theme=light] .sidebar,[data-theme=light] .drawer{background:#fff}
+[data-theme=light] .bottom{background:#fffffffa}
+[data-theme=light] .bottom button{color:#7a6c5d}
+[data-theme=light] .field::placeholder,[data-theme=light] .fw input::placeholder{color:#a39585}
+[data-theme=light] .note,[data-theme=light] .statfoot,[data-theme=light] .sectionhead span,[data-theme=light] .sidehead,[data-theme=light] .fw{color:#7a6c5d}
+[data-theme=light] .btn.red{background:#fdebe6;color:#b23a20;border-color:#f3c5b9}
+[data-theme=light] .btn.green{color:#fff}
+[data-theme=light] .pill{background:#efe5d6;color:#6f6254}
+[data-theme=light] .orderitems{color:#4a3d30}
