@@ -1,3 +1,4 @@
+// phase2.js — पूर्ण दुरुस्त फाईल
 /* SJ Restaurant - Phase 2: Dues/Udhaar, Expenses, Accounts, Floors, Audit log, Staff roles */
 (function(){
 const r2=n=>Math.round(n*100)/100,CATS=['Raw material','Salary','Rent','Gas / Electricity','Repair','Packaging','Other'],MODES=['Cash','UPI','Card'];
@@ -44,7 +45,23 @@ PG.exp=async()=>{const n=+(window._er||1),{data}=await sb.from('expenses').selec
  L.forEach(x=>by[x.cat||'Other']=(by[x.cat||'Other']||0)+ +x.amount);
  $('pg').innerHTML=`<h1 class="page-title">Expenses</h1>${tabs('_er',n,'exp')}<div class="stat"><div class="statlabel">Total expenses</div><div class="statvalue">${money(r2(sum(L,x=>x.amount)))}</div></div>${Object.entries(by).map(([k,v])=>`<div class="row"><div class="grow">${esc(k)}</div><b>${money(r2(v))}</b></div>`).join('')}<div class="sectionhead"><h3>Entries</h3></div>${L.map(x=>`<div class="row"><div class="grow"><b>${esc(x.cat||'Other')}</b> · ${esc(x.mode||'')}<br><small>${x.spent_on}${x.note?' · '+esc(x.note):''}</small></div><b>${money(x.amount)}</b><button class="btn red" onclick="expDel('${x.id}')" aria-label="Delete">✕</button></div>`).join('')||'<div class="panel empty">No expenses.</div>'}<section class="panel"><h3 style="margin:0 0 12px">Add expense</h3><form id="ef" class="inline"><input class="field" name="d" type="date" value="${ymd(new Date())}" required><select class="field" name="c">${CATS.map(c=>`<option>${c}</option>`).join('')}</select><input class="field" name="a" type="number" min="1" placeholder="Amount" required><input class="field" name="n" placeholder="Note (optional)" maxlength="100"><select class="field" name="m">${MODES.map(m=>`<option>${m}</option>`).join('')}</select><button class="btn">Add</button></form></section>`;
  $('ef').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target),a=+d.get('a');const{error}=await sb.from('expenses').insert({rid:R.id,cat:d.get('c'),amount:a,note:d.get('n').trim()||null,mode:d.get('m'),spent_on:d.get('d')});if(error)return toast(error.message);audit('exp_add',d.get('c')+' · Rs '+a);go('exp')}};
-window.expDel=async id=>{if(!confirm('Delete this expense?'))return;const{data}=await sb.from('expenses').select('cat,amount').eq('id',id).maybeSingle();await sb.from('expenses').delete().eq('id',id);if(data)audit('exp_delete',data.cat+' · Rs '+data.amount);go('exp')};
+window.expDel = async id => {
+  $('sheet').innerHTML = `<div class="sheetbox">
+    <h3 style="margin:0 0 8px">Delete expense?</h3>
+    <p class="note" style="text-align:left">This entry will be removed permanently.</p>
+    <div class="popup-actions">
+      <button class="btn red" id="delok">Delete</button>
+      <button class="btn gray" onclick="$('sheet').innerHTML=''">Cancel</button>
+    </div>
+  </div>`;
+  $('delok').onclick = async () => {
+    const { data } = await sb.from('expenses').select('cat,amount').eq('id', id).maybeSingle();
+    await sb.from('expenses').delete().eq('id', id);
+    if (data) audit('exp_delete', data.cat + ' · Rs ' + data.amount);
+    $('sheet').innerHTML = '';
+    go('exp');
+  };
+};
 /* ----- Accounts (P&L) ----- */
 PG.acc=async()=>{const n=+(window._ar||30),a=dayR(ymd(startOf(n)))[0],e=new Date();e.setDate(e.getDate()+1);const b=dayR(ymd(e))[0];
  const[bs,ex,pd,al]=await Promise.all([getBills(a,b),sb.from('expenses').select('cat,amount,mode').eq('rid',R.id).gte('spent_on',ymd(startOf(n))).lte('spent_on',ymd(new Date())),sb.from('dues').select('amount,mode').eq('rid',R.id).eq('kind','paid').gte('created_at',a).lt('created_at',b),sb.from('dues').select('amount,kind').eq('rid',R.id)]);
