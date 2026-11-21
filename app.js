@@ -4,6 +4,17 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let tm;function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(tm);tm=setTimeout(()=>t.classList.add('hidden'),3000)}
 async function rpc(n,a){const{data,error}=await sb.rpc(n,a);if(error){toast(error.message==='bad_pin'?'Wrong table PIN. Ask your waiter for the PIN.':error.message==='empty_order'?'Items are not available.':error.message);throw error}return data}
 const view=h=>app.innerHTML=h;
+
+/* ---------- कस्टम कन्फर्म बॉक्स (ब्राउझरचा नको) ---------- */
+window.cBox=(m,cb)=>{
+  const d=document.createElement('div'); d.className='cbox-bg';
+  d.innerHTML=`<div class="cbox"><div class="cb-txt">${esc(m)}</div><div class="cb-btns"><button class="btn gray" id="cbN">Cancel</button><button class="btn red" id="cbY">Delete</button></div></div>`;
+  document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('#cbN').onclick=close;
+  d.querySelector('#cbY').onclick=()=>{close();cb()};
+};
+
 const shell=(title,body)=>view(`<header class="topbar"><div class="mini">SJ</div><div class="topname">${esc(title)}</div><button class="icon logout" onclick="logout()" aria-label="Log out">⇥</button></header><main class="content">${body}</main>`);
 let R=null,S=null,poll=null,T='orders';
 async function logout(){clearInterval(poll);S=null;R=null;await sb.auth.signOut();loginView()}
@@ -58,7 +69,7 @@ const sum=(a,f=x=>x.total)=>a.reduce((s,x)=>s+Number(f(x)),0);
 const getBills=async(a,b)=>(await sb.from('bills').select('*').eq('rid',R.id).gte('created_at',a).lt('created_at',b).order('created_at',{ascending:false})).data||[];
 const modes=bs=>['Cash','UPI','Card','Udhaar'].map(m=>`<div class="row"><div class="grow">${m}</div><b>${money(sum(bs.filter(b=>b.mode===m)))}</b></div>`).join('');
 
-/* गोल ठिपका (Veg=हिरवा, Non-Veg=लाल, Drinks=निळा) */
+/* गोल ठिपका */
 const vd=m=>{
   const t = m.type || detectType(m.name);
   const cls = t==='nonveg'?'nv' : t==='drink'?'dr' : 'v';
@@ -78,7 +89,6 @@ const PG={
 home:async()=>{const t=ymd(new Date()),[a,b]=dayR(t),bs=await getBills(a,b),{data:os}=await sb.from('orders').select('status').eq('rid',R.id).gte('created_at',a),h=new Date().getHours(),live=(os||[]).filter(o=>['new','preparing','ready'].includes(o.status)).length;
  $('pg').innerHTML=`<div class="welcome"><div><div class="eyebrow">${h<12?'Good morning':h<17?'Good afternoon':'Good evening'}</div><h2>${esc(R.name)}</h2><p>Here is your restaurant overview.</p></div><div class="welcomeicon">🍽️</div></div><div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat"><div class="statlabel">Today's sales</div><div class="statvalue">${money(sum(bs))}</div><div class="statfoot">${bs.length} bills</div></div><div class="stat"><div class="statlabel">Live orders</div><div class="statvalue">${live}</div><div class="statfoot">${(os||[]).length} orders today</div></div></div><div class="inline" style="margin:10px 0"><button class="btn green" style="flex:1" onclick="go('orders')">🧾 Live orders</button><button class="btn" style="flex:1" onclick="go('closing')">🔒 Day closing</button></div><div class="sectionhead"><h3>Quick actions</h3><span>Shortcuts</span></div><div class="actions">${[['menu','📖','My Menu'],['menu','＋','Add Item'],['sales','📊','Reports'],['history','🕘','History']].map(x=>`<button class="action" onclick="go('${x[0]}')"><span class="actionicon">${x[1]}</span>${x[2]}</button>`).join('')}</div>`},
 
-/* ============ ORDERS (Live) — डिलीट बटनसह ============ */
 orders:async()=>{
   const[a]=dayR(ymd(new Date()));
   const{data}=await sb.from('orders').select('*').eq('rid',R.id).gte('created_at',a).order('created_at',{ascending:false});
@@ -104,7 +114,7 @@ orders:async()=>{
     </article>
   `).join('')||'<div class="panel empty">No orders yet today.</div>')},
 
-/* ============ MENU — 3 विभाग ============ */
+/* ============ MENU — 3 विभाग + Sub-Categories ============ */
 menu:async()=>{
   const{data}=await sb.from('menu').select('*').eq('rid',R.id).order('cat');
   const items=(data||[]);
@@ -119,20 +129,28 @@ menu:async()=>{
   const drinks = items.filter(m=>(m.type||detectType(m.name))==='drink');
 
   const renderRow=m=>`<div class="row mi" data-n="${esc(m.name.toLowerCase())}"><div class="grow">${vd(m)}<b>${esc(m.name)}</b><br><small>${esc(m.cat)} · ${m.sizes&&m.sizes.length?m.sizes.map(s=>esc(s.n)+' '+money(s.p)).join(' / '):money(m.price)}</small></div><button class="btn ${m.available?'green':'gray'}" onclick='mAv("${m.id}",${!m.available})'>${m.available?'In stock':'Sold out'}</button><button class="btn red" onclick='mDel("${m.id}")' aria-label="Delete">✕</button></div>`;
-  const section=(title,cls,list)=>list.length?`<div class="cat cat-${cls}">${title} <span class="cnt">(${list.length})</span></div>${list.map(renderRow).join('')}`:'';
+  
+  // सब-कॅटेगरीनुसार ग्रुपिंग करण्यासाठी फंक्शन
+  const renderSection = (title, cls, list) => {
+    if(!list.length) return '';
+    const cats = [...new Set(list.map(m=>m.cat||'Other'))];
+    return `<div class="cat cat-${cls}">${title} <span class="cnt">(${list.length})</span></div>` + 
+      cats.map(c => `<div class="subcat">${esc(c)}</div>` + list.filter(m=>(m.cat||'Other')===c).map(renderRow).join('')).join('');
+  };
 
   $('pg').innerHTML=`<h1 class="page-title">Menu</h1>
   <button class="btn" style="width:100%;margin-bottom:12px" onclick="openScan()">📷 Scan Menu Card</button>
   <div class="fw" style="margin-bottom:12px"><input id="ms" placeholder="Search item…"></div>
-  ${section('🟢 Veg','veg',veg)}
-  ${section('🔴 Non-Veg','nonveg',nonveg)}
-  ${section('🥤 Drinks','drink',drinks)}
+  ${renderSection('🟢 Veg','veg',veg)}
+  ${renderSection('🔴 Non-Veg','nonveg',nonveg)}
+  ${renderSection('🥤 Drinks','drink',drinks)}
   ${(veg.length+nonveg.length+drinks.length)===0?'<div class="panel empty">Menu empty. Add items below.</div>':''}
+  
   <section class="panel"><h3 style="margin:0 0 12px">Add item</h3>
    <form id="mf" class="inline">
     <input class="field" name="n" placeholder="Item name" required>
     <input class="field" name="p" type="number" min="0" placeholder="Price" required>
-    <input class="field" name="c" placeholder="Category" value="Main Course">
+    <input class="field" name="c" placeholder="Category (e.g. Soup, Ice Cream)" value="Main Course">
     <input class="field" name="z" placeholder="Sizes (optional) Half:80, Full:150">
     <select class="field" name="t">
       <option value="veg">🟢 Veg</option>
@@ -141,7 +159,7 @@ menu:async()=>{
     </select>
     <button class="btn">Add</button>
    </form>
-   <p class="note">Type auto-detect होत नाही? खालील dropdown मधून निवडा.</p>
+   <p class="note">Type auto-detect होत नाही? वरच्या dropdown मधून निवडा.</p>
   </section>`;
 
   const fm=$('mf').elements,fn=fm.n,ft=fm.t;
@@ -166,7 +184,6 @@ menu:async()=>{
   };
 },
 
-/* ============ HISTORY — डिलीट बटनसह ============ */
 history:async()=>{
   const[a,b]=dayR(HD);
   BL=await getBills(a,b);
@@ -211,26 +228,25 @@ qr:async()=>{const base=location.origin+location.pathname;
 };
 
 async function mAv(id,v){await sb.from('menu').update({available:v}).eq('id',id);go('menu')}
-async function mDel(id){if(confirm('Delete this item?')){await sb.from('menu').delete().eq('id',id);go('menu')}}
-async function sDel(id){if(confirm('Remove this staff member?')){await sb.from('staff').delete().eq('id',id);go('staff')}}
+async function mDel(id){cBox('Delete this item?',async()=>{await sb.from('menu').delete().eq('id',id);go('menu')})}
+async function sDel(id){cBox('Remove this staff member?',async()=>{await sb.from('staff').delete().eq('id',id);go('staff')})}
 
-/* ऑर्डर डिलीट करण्यासाठी */
+/* कस्टम कन्फर्म बॉक्स वापरून डिलीट */
 async function delOrder(id){
-  if(confirm('ही ऑर्डर डिलीट करायची आहे का?')){
+  cBox('ही ऑर्डर डिलीट करायची आहे का?', async()=>{
     const{error}=await sb.from('orders').delete().eq('id',id);
     if(error) return toast(error.message);
     toast('ऑर्डर डिलीट झाली');
     go('orders');
-  }
+  });
 }
-/* बिल (History) डिलीट करण्यासाठी */
 async function delBill(id){
-  if(confirm('हे बिल डिलीट करायचे आहे का? हे पुन्हा मिळणार नाही.')){
+  cBox('हे बिल डिलीट करायचे आहे का? हे पुन्हा मिळणार नाही.', async()=>{
     const{error}=await sb.from('bills').delete().eq('id',id);
     if(error) return toast(error.message);
     toast('बिल डिलीट झाले');
     go('history');
-  }
+  });
 }
 
 function billSheet(b,name){const m={};(b.items||[]).forEach(i=>{const k=i.name+'|'+i.price;m[k]=m[k]||{...i,qty:0};m[k].qty+=i.qty});const L=Object.values(m),when=new Date(b.created_at).toLocaleString();
