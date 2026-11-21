@@ -3,6 +3,7 @@
 const TJS='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 const NONVEG=/chicken|mutton|egg\b|eggs|fish|prawn|keema|kebab|kabab|lamb|crab|bhurji(?!.*paneer)|चिकन|मटण|अंडे|अंडा|मासे|कोळंबी|कोंबडी|सुरमई|पापलेट/i;
 const VEGFIX=/paneer|पनीर|veg\b|vegetable|soya|mushroom/i;
+const DRINK=/tea|chai|चहा|coffee|कॉफी|lassi|लस्सी|shake|juice|ज्यूस|lemon|nimbu|सरबत|sharbat|soda|cola|pepsi|coke|thums|sprite|cold\s?drink|drink|mojito|ताक|buttermilk|water|पाणी|beer|बिअर|wine|whisky|vodka|rum|milk|doodh|दूध|cold drink/i;
 const sh=()=>document.getElementById('sheet');
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let ROWS=[];
@@ -27,8 +28,16 @@ function segs(data){
  const m=[];for(const x of out){const p=m[m.length-1];if(p&&PO.test(x.t.trim())&&!HP.test(p.t.trim())){p.t+=' '+x.t;p.c=(p.c+x.c)/2}else m.push(x)}return m}
 const dev=s=>s.replace(/[०-९]/g,d=>'०१२३४५६७८९'.indexOf(d));
 
-/* turn raw OCR text into [{name,price,cat,veg}] */
+/* turn raw OCR text into [{name,price,cat,type}] */
 const good=(n,c)=>c>=55&&/[A-Za-z\u0900-\u097F]{2}/.test(n)&&!/[“”"<>{}\\|]/.test(n)&&n.length<=45;
+
+const autoType=(name)=>{
+  const s=String(name||'').toLowerCase();
+  if(DRINK.test(s)) return 'drink';
+  if(NONVEG.test(s) && !VEGFIX.test(s)) return 'nonveg';
+  return 'veg';
+};
+
 function parse(src){
  const out=[];let cat='Menu';
  const L=typeof src==='string'?src.split(/\r?\n/).map(t=>({t,c:100})):src;
@@ -40,7 +49,7 @@ function parse(src){
   if(m2){
    let name=m2[1].replace(/[\s\-:.,=*()\[\]]+$/g,'').replace(/^[\s\-:.,=*0-9)\]]+(?=[A-Za-z\u0900-\u097F])/,'').trim(),price=+m2[2];
    if(name.length<2||price<5||price>5000)continue;
-   out.push({on:good(name,c),name:name.replace(/\b([a-z])([a-z]*)/gi,(w,a,b)=>a.toUpperCase()+b.toLowerCase()),price,cat,veg:!(NONVEG.test(name)&&!VEGFIX.test(name))});
+   out.push({on:good(name,c),name:name.replace(/\b([a-z])([a-z]*)/gi,(w,a,b)=>a.toUpperCase()+b.toLowerCase()),price,cat,type:autoType(name)});
   }else if(!/\d/.test(l)&&l.length<=32&&/[A-Za-z\u0900-\u097F]{3,}/.test(l)){
    cat=l.replace(/[^A-Za-z\u0900-\u097F &'/]/g,'').trim().replace(/\b([a-z])([a-z]*)/gi,(w,a,b)=>a.toUpperCase()+b.toLowerCase())||cat;
   }
@@ -81,9 +90,9 @@ function review(){
  <input class="field" style="flex:1 1 150px;height:44px;margin:0" value="${E(r.name)}" data-i="${i}" data-k="name" aria-label="Name">
  <input class="field" style="width:84px;height:44px;margin:0" type="number" min="0" value="${r.price}" data-i="${i}" data-k="price" aria-label="Price">
  <input class="field" style="flex:1 1 110px;height:44px;margin:0" value="${E(r.cat)}" data-i="${i}" data-k="cat" aria-label="Category">
- <select class="field" style="width:104px;height:44px;margin:0" data-i="${i}" data-k="veg"><option value="1" ${r.veg?'selected':''}>Veg</option><option value="0" ${r.veg?'':'selected'}>Non-veg</option></select></div>`).join('')}</div>
+ <select class="field" style="width:104px;height:44px;margin:0" data-i="${i}" data-k="type"><option value="veg" ${r.type==='veg'?'selected':''}>Veg</option><option value="nonveg" ${r.type==='nonveg'?'selected':''}>Non-veg</option><option value="drink" ${r.type==='drink'?'selected':''}>Drink</option></select></div>`).join('')}</div>
  <div id="scerr" class="note" style="color:var(--chili);text-align:left;margin:8px 0 0"></div><div class="orderactions" style="margin-top:8px;position:sticky;bottom:0;background:var(--panel);padding:8px 0"><button class="btn green" id="scsave">Save selected</button><button class="btn gray" onclick="document.getElementById('sheet').innerHTML=''">Cancel</button></div>`);
- document.getElementById('scl').oninput=document.getElementById('scl').onchange=e=>{const t=e.target,r=ROWS[+t.dataset.i];if(!r)return;const k=t.dataset.k;r[k]=k==='on'?t.checked:k==='price'?+t.value:k==='veg'?t.value==='1':t.value};
+ document.getElementById('scl').oninput=document.getElementById('scl').onchange=e=>{const t=e.target,r=ROWS[+t.dataset.i];if(!r)return;const k=t.dataset.k;r[k]=k==='on'?t.checked:k==='price'?+t.value:t.value};
  document.getElementById('scsave').onclick=save;
 }
 
@@ -96,7 +105,7 @@ async function save0(){
  const{data:ex}=await sb.from('menu').select('name').eq('rid',R.id),have=new Set((ex||[]).map(x=>x.name.trim().toLowerCase()));
  const pick=ROWS.filter(r=>r.on&&r.name.trim()&&r.price>=0),add=pick.filter(r=>!have.has(r.name.trim().toLowerCase()));
  if(!add.length){btn.disabled=false;btn.textContent='Save selected';return err(pick.length?'All these items already exist in your menu.':'Nothing selected.')}
- const{error}=await sb.from('menu').insert(add.map(r=>({rid:R.id,name:r.name.trim(),price:r.price,cat:(r.cat||'Menu').trim()||'Menu',veg:r.veg,emoji:foodEmoji(r.name)})));
+ const{error}=await sb.from('menu').insert(add.map(r=>({rid:R.id,name:r.name.trim(),price:r.price,cat:(r.cat||'Menu').trim()||'Menu',veg:r.type==='veg',type:r.type})));
  if(error){btn.disabled=false;btn.textContent='Save selected';return err('Could not save: '+error.message)}
  const msg=add.length+' items saved'+(pick.length>add.length?' ('+(pick.length-add.length)+' already existed)':'');btn.textContent='Saved ✓';say('✓ '+msg,true);toast(msg);setTimeout(()=>{close();go('menu')},1000);
 }
