@@ -1,0 +1,31 @@
+/* SJ Restaurant - UI polish + extras: nav icons, offline banner, install button, category chips, daily summary share */
+(function(){
+const I=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICON={home:I('<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>'),orders:I('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),menu:I('<path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5V19c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13.5"/>'),history:I('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>')};
+if(typeof NAV!=='undefined')NAV.forEach(n=>{if(ICON[n[0]])n[1]=ICON[n[0]]});
+/* offline banner */
+const off=document.createElement('div');off.className='offline hidden';off.setAttribute('role','status');off.textContent='You are offline. Changes will not save until the internet is back.';document.body.appendChild(off);
+const upd=()=>off.classList.toggle('hidden',navigator.onLine!==false);addEventListener('online',upd);addEventListener('offline',upd);upd();
+/* install app button */
+let ev=null;const ib=document.createElement('div');ib.className='install hidden';ib.innerHTML='<span>Install this app on your phone</span><button class="btn" type="button">Install</button><button class="btn gray" type="button" aria-label="Dismiss">✕</button>';document.body.appendChild(ib);
+const [bi,bx]=ib.querySelectorAll('button');
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();ev=e;let d;try{d=localStorage.getItem('sj_noinst')}catch(x){}if(!d)ib.classList.remove('hidden')});
+addEventListener('appinstalled',()=>ib.classList.add('hidden'));
+bi.onclick=async()=>{if(!ev)return;ib.classList.add('hidden');ev.prompt();try{await ev.userChoice}catch(e){}ev=null};
+bx.onclick=()=>{ib.classList.add('hidden');try{localStorage.setItem('sj_noinst','1')}catch(e){}};
+/* category chips on the customer QR menu */
+const qp=new URLSearchParams(location.search);let t;
+if(qp.get('r')&&qp.get('t')){const chips=()=>{const cats=[...document.querySelectorAll('.content .cat')];if(cats.length<3||document.getElementById('catbar'))return;
+  const bar=document.createElement('nav');bar.id='catbar';bar.className='catbar';bar.setAttribute('aria-label','Categories');
+  cats.forEach(c=>{const b=document.createElement('button');b.type='button';b.textContent=c.textContent.trim();b.onclick=()=>scrollTo({top:c.getBoundingClientRect().top+scrollY-130,behavior:'smooth'});bar.appendChild(b)});
+  cats[0].parentNode.insertBefore(bar,cats[0])};
+ new MutationObserver(()=>{clearTimeout(t);t=setTimeout(chips,80)}).observe(document.getElementById('app'),{childList:true,subtree:true})}
+/* owner: share today's summary on WhatsApp */
+if(typeof PG!=='undefined'&&PG.home){const _h=PG.home;PG.home=async()=>{await _h();const g=$('pg');if(!g)return;const w=g.querySelector&&g.querySelector('.welcome'),html='<button class="btn gray" style="width:100%;margin:12px 0 0" onclick="shareDay()">📤 Share today\u2019s summary</button>';if(w&&w.insertAdjacentHTML)w.insertAdjacentHTML('afterend',html)}}
+window.shareDay=async()=>{const day=ymd(new Date()),[a,b]=dayR(day),bs=await getBills(a,b);let ex=[];try{const r=await sb.from('expenses').select('amount').eq('rid',R.id).eq('spent_on',day);ex=r.data||[]}catch(e){}
+ const m=k=>sum(bs.filter(x=>x.mode===k)),tax=sum(bs,x=>x.tax||0),sales=sum(bs,x=>+x.subtotal-+x.discount),exp=sum(ex,x=>x.amount),it={};
+ bs.forEach(x=>(x.items||[]).forEach(i=>it[i.name]=(it[i.name]||0)+i.qty));const top=Object.entries(it).sort((p,q)=>q[1]-p[1]).slice(0,3).map(t=>t[0]+' ×'+t[1]).join(', '),r2=n=>Math.round(n*100)/100;
+ const txt=`*${R.name}* · ${new Date().toLocaleDateString()}\nSales (before GST): ₹${r2(sales)}\nGST: ₹${r2(tax)} · Bills: ${bs.length}\nCash ₹${r2(m('Cash'))} · UPI ₹${r2(m('UPI'))} · Card ₹${r2(m('Card'))} · Udhaar ₹${r2(m('Udhaar'))}\nExpenses: ₹${r2(exp)} · Profit: ₹${r2(sales-exp)}`+(top?`\nTop: ${top}`:'');
+ $('sheet').innerHTML=`<div class="sheetbox"><h3>Today\u2019s summary</h3><pre style="white-space:pre-wrap;font:inherit;margin:0 0 14px;color:var(--muted)">${esc(txt)}</pre><div class="orderactions"><a class="btn green" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt)}">WhatsApp</a><button class="btn gray" id="shc">Copy</button><button class="btn gray" onclick="closeSheet()">Close</button></div></div>`;
+ $('shc').onclick=async()=>{try{await navigator.clipboard.writeText(txt);toast('Copied.')}catch(e){toast('Could not copy.')}}};
+})();

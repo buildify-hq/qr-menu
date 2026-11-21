@@ -76,7 +76,7 @@ async function run(file){
 
 function review(){
  const lo=ROWS.filter(r=>!r.on).length;
- box(`<h3 style="margin:0">Check items (${ROWS.length}) <small style="font-weight:400;opacity:.6">v3.2</small></h3><p class="note" style="text-align:left;margin:4px 0 10px">Fix names or prices, untick wrong lines, then save.${lo?' '+lo+' unsure lines are left unticked.':''}</p><div class="inline" style="margin-bottom:8px"><button class="btn gray" onclick="scAll(true)">Select all</button><button class="btn gray" onclick="scAll(false)">Select none</button></div>
+ box(`<h3 style="margin:0">Check items (${ROWS.length}) <small style="font-weight:400;opacity:.6">v3.3</small></h3><p class="note" style="text-align:left;margin:4px 0 10px">Fix names or prices, untick wrong lines, then save.${lo?' '+lo+' unsure lines are left unticked.':''}</p><div class="inline" style="margin-bottom:8px"><button class="btn gray" onclick="scAll(true)">Select all</button><button class="btn gray" onclick="scAll(false)">Select none</button></div>
  <div id="scl">${ROWS.map((r,i)=>`<div class="row" style="flex-wrap:wrap;gap:8px"><input type="checkbox" ${r.on?'checked':''} data-i="${i}" data-k="on" style="width:22px;height:22px">
  <input class="field" style="flex:1 1 150px;height:44px;margin:0" value="${E(r.name)}" data-i="${i}" data-k="name" aria-label="Name">
  <input class="field" style="width:84px;height:44px;margin:0" type="number" min="0" value="${r.price}" data-i="${i}" data-k="price" aria-label="Price">
