@@ -64,7 +64,6 @@ PG.staff=async()=>{const{data}=await sb.from('staff').select('*').eq('rid',R.id)
 window.stEdit=id=>{const s=_st.find(x=>x.id===id);if(!s)return;sheet(`<h3 style="margin:0 0 10px">${esc(s.name)}</h3><label class="label">Role</label><select class="field" id="er">${['chef','waiter','cashier'].map(r=>`<option value="${r}" ${s.role===r?'selected':''}>${r}</option>`).join('')}</select><label class="label" style="display:block"><input type="checkbox" id="eb" style="width:auto;margin-right:8px" ${s.can_bill===false?'':'checked'}>Can make bills</label><label class="label" style="margin-top:12px">Max discount %</label><input class="field" id="ed" type="number" min="0" max="100" value="${s.max_disc??100}"><div class="orderactions"><button class="btn green" id="esv">Save</button><button class="btn gray" onclick="closeSheet()">Cancel</button></div>`);
  $('esv').onclick=async()=>{const b=$('esv');if(b.disabled)return;b.disabled=true;try{const r=$('er').value,u={role:r,can_bill:r==='chef'?false:$('eb').checked,max_disc:r==='chef'?0:Math.min(100,Math.max(0,+$('ed').value||0))};const{error}=await sb.from('staff').update(u).eq('id',id);if(error)return toast(error.message);audit('staff_edit',s.name+' → '+r+', billing '+(u.can_bill?'yes':'no')+', discount '+u.max_disc+'%');closeSheet();go('staff')}finally{if($('esv'))$('esv').disabled=false}}};
 /* ----- Menu in drawer ----- */
-DR.push(['Inventory',[['stock','','Stock'],['recipes','','Recipes'],['suppliers','','Suppliers']]]);
-DR.push(['Delivery',[['deliv','','Deliveries'],['riders','','Riders']]]);
+DR.find(s=>s[0]==='Tables & Staff')[1].unshift(['floors','','Floors & Tables']);
 DR.push(['Accounts',[['dues','','Dues / Udhaar'],['exp','','Expenses'],['acc','','Accounts (P&L)'],['audit','','Audit Log']]]);
 })();
