@@ -136,13 +136,3 @@ button.row{text-align:left;width:100%}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
 @media print{.topbar,.tabs,.btn,.toast,.bottom,.offline,.install{display:none!important}body{background:#fff}
 body>*:not(#sheet){display:none!important}.sheet{position:static;background:#fff;padding:0;display:block}.sheetbox{background:#fff;color:#000;border:0;box-shadow:none;max-height:none;animation:none;padding:0}.orderactions{display:none}}
-/* style.css — शेवटी जोडा */
-.popup-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
-}
-.popup-actions button {
-  width: 100%;
-}

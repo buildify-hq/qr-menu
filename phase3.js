@@ -16,7 +16,7 @@ const KL={in:'Purchase',out:'Used',waste:'Waste',adjust:'Count fix',sale:'Sold (
 const stRows=q=>{q=(q||'').toLowerCase();return ST.filter(x=>x.name.toLowerCase().includes(q)).map(x=>`<div class="row" role="button" tabindex="0" style="cursor:pointer" onclick="siItem('${x.id}')"><div class="grow"><b>${esc(x.name)}</b><br><small>min ${fq(x.min_qty)} ${esc(x.unit)} · ₹${r2(x.cost)}/${esc(x.unit)}</small></div>${low(x)?'<span class="pill" style="color:var(--chili)">Low</span>':''}<b style="color:${+x.qty<0?'var(--chili)':'inherit'}">${fq(x.qty)} ${esc(x.unit)}</b></div>`).join('')||'<div class="panel empty">No stock items yet.</div>'};
 window.siFilter=v=>{$('sl').innerHTML=stRows(v)};
 PG.stock=async()=>{await load();const val=ST.reduce((s,x)=>s+Math.max(0,x.qty)*x.cost,0);
- pg(`<h1 class="page-title">Stock</h1><div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="stat"><div class="statlabel">Items</div><div class="statvalue">${ST.length}</div></div><div class="stat"><div class="statlabel">Low</div><div class="statvalue" style="color:${ST.some(low)?'var(--chili)':'inherit'}">${ST.filter(low).length}</div></div><div class="stat"><div class="statlabel">Value</div><div class="statvalue">${money(Math.round(val))}</div></div></div><div class="fw"><input id="sq" placeholder="Search stock…" oninput="siFilter(this.value)" style="background:none;border:0;color:inherit;flex:1;outline:0"></div><div id="sl">${stRows('')}</div><section class="panel"><h3 style="margin:0 0 12px">Add stock item</h3><form id="af" style="display:flex;flex-direction:column;gap:10px"><div class="inline"><input class="field" name="n" placeholder="Name (e.g. Chicken)" maxlength="60" required><select class="field" name="u" style="max-width:100px">${opt(U)}</select></div><div class="inline"><input class="field" name="q" type="number" step="any" min="0" placeholder="Opening qty"><input class="field" name="m" type="number" step="any" min="0" placeholder="Alert below"></div><div class="inline"><input class="field" name="c" type="number" step="any" min="0" placeholder="Cost per unit ₹"><select class="field" name="s"><option value="">Supplier</option>${opt(SP,'',s=>s.name)}</select></div><button class="btn green" style="margin-top:4px">Add Stock Item</button></form></section>`);
+ pg(`<h1 class="page-title">Stock</h1><div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="stat"><div class="statlabel">Items</div><div class="statvalue">${ST.length}</div></div><div class="stat"><div class="statlabel">Low</div><div class="statvalue" style="color:${ST.some(low)?'var(--chili)':'inherit'}">${ST.filter(low).length}</div></div><div class="stat"><div class="statlabel">Value</div><div class="statvalue">${money(Math.round(val))}</div></div></div><div class="fw"><input id="sq" placeholder="Search stock…" oninput="siFilter(this.value)" style="background:none;border:0;color:inherit;flex:1;outline:0"></div><div id="sl">${stRows('')}</div><section class="panel"><h3 style="margin:0 0 12px">Add stock item</h3><form id="af" class="inline"><input class="field" name="n" placeholder="Name (e.g. Chicken)" maxlength="60" required><select class="field" name="u">${opt(U)}</select><input class="field" name="q" type="number" step="any" min="0" placeholder="Opening qty"><input class="field" name="m" type="number" step="any" min="0" placeholder="Alert when below"><input class="field" name="c" type="number" step="any" min="0" placeholder="Cost per unit ₹"><select class="field" name="s"><option value="">Supplier (optional)</option>${opt(SP,'',s=>s.name)}</select><button class="btn">Add</button></form></section>`);
  $('af').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target),q=+d.get('q')||0,c=+d.get('c')||0,s=d.get('s')||null;const{data,error}=await sb.from('stock_items').insert({rid:R.id,name:d.get('n').trim(),unit:d.get('u'),min_qty:+d.get('m')||0,cost:c,supplier_id:s}).select().single();if(error)return toast(error.message);if(q>0)try{await rpc('stock_move',{r_id:R.id,it:data.id,k:'in',q,uc:c||null,sup:s,nt:'Opening stock'})}catch(x){}go('stock')}};
 window.siItem=id=>{const x=item(id);sheet(`<h3 style="margin:0">${esc(x.name)}</h3><div class="statvalue">${fq(x.qty)} ${esc(x.unit)}</div><small>Avg cost ₹${r2(x.cost)}/${esc(x.unit)}${low(x)?' · LOW STOCK':''}</small><div class="orderactions" style="margin-top:14px"><button class="btn green" onclick="siIn('${id}')">＋ Purchase</button><button class="btn" onclick="siOut('${id}')">Waste / Used</button><button class="btn" onclick="siAdj('${id}')">Count</button></div><div class="orderactions" style="margin-top:8px"><button class="btn gray" onclick="siHist('${id}')">History</button><button class="btn gray" onclick="siEdit('${id}')">Edit</button><button class="btn gray" onclick="closeSheet()">Close</button></div>`)};
 window.siIn=id=>{const x=item(id);sheet(`<h3 style="margin:0 0 8px">＋ Purchase · ${esc(x.name)}</h3><label class="label">Quantity (${esc(x.unit)})</label><input class="field" id="iq" type="number" step="any" min="0" inputmode="decimal"><label class="label">Cost per ${esc(x.unit)} (₹)</label><input class="field" id="ic" type="number" step="any" min="0" inputmode="decimal" value="${r2(x.cost)||''}"><label class="label">Supplier</label><select class="field" id="is"><option value="">—</option>${opt(SP,x.supplier_id,s=>s.name)}</select><label class="label">Paid by (adds to Expenses)</label><select class="field" id="ip">${opt(PAY)}<option value="">Not paid yet</option></select><div class="orderactions"><button class="btn green" id="iok">Save</button><button class="btn gray" onclick="siItem('${id}')">Back</button></div>`);
@@ -30,22 +30,7 @@ window.siHist=async id=>{const x=item(id),{data}=await sb.from('stock_moves').se
  sheet(`<h3 style="margin:0 0 8px">${esc(x.name)} · History</h3>${(data||[]).map(m=>`<div class="row" style="margin:4px 0"><div class="grow">${KL[m.kind]||m.kind}<br><small>${new Date(m.created_at).toLocaleString()}${m.note?' · '+esc(m.note):''}</small></div><b style="color:${+m.qty<0?'var(--chili)':'var(--leaf)'}">${+m.qty>0?'+':''}${fq(m.qty)} ${esc(x.unit)}</b></div>`).join('')||'<div class="panel empty">No history.</div>'}<button class="btn gray" style="width:100%;margin-top:10px" onclick="siItem('${id}')">Back</button>`)};
 window.siEdit=id=>{const x=item(id);sheet(`<h3 style="margin:0 0 8px">Edit ${esc(x.name)}</h3><label class="label">Name</label><input class="field" id="en" value="${esc(x.name)}" maxlength="60"><label class="label">Unit</label><select class="field" id="eu">${opt(U,x.unit)}</select><label class="label">Alert when below</label><input class="field" id="em" type="number" step="any" min="0" value="${fq(x.min_qty)}"><label class="label">Supplier</label><select class="field" id="es"><option value="">—</option>${opt(SP,x.supplier_id,s=>s.name)}</select><div class="orderactions"><button class="btn green" id="eok">Save</button><button class="btn red" id="edel">Delete</button><button class="btn gray" onclick="siItem('${id}')">Back</button></div>`);
  ok('eok',async()=>{const n=$('en').value.trim();if(!n)return toast('Enter a name.');const{error}=await sb.from('stock_items').update({name:n,unit:$('eu').value,min_qty:+$('em').value||0,supplier_id:$('es').value||null}).eq('id',id);if(error)return toast(error.message);cl();go('stock')});
- ok('edel', async () => {
-  $('sheet').innerHTML = `<div class="sheetbox">
-    <h3 style="margin:0 0 8px">Delete stock item?</h3>
-    <p class="note" style="text-align:left">Recipes using it will lose this ingredient.</p>
-    <div class="popup-actions">
-      <button class="btn red" id="delok">Delete</button>
-      <button class="btn gray" onclick="siItem('${id}')">Cancel</button>
-    </div>
-  </div>`;
-  $('delok').onclick = async () => {
-    await sb.from('recipes').delete().eq('item_id', id);
-    await sb.from('stock_items').update({ active: false }).eq('id', id);
-    cl();
-    go('stock');
-  };
- })};
+ ok('edel',async()=>{if(!confirm('Delete this stock item? Recipes using it will lose it.'))return;await sb.from('recipes').delete().eq('item_id',id);await sb.from('stock_items').update({active:false}).eq('id',id);cl();go('stock')})};
 /* ================= RECIPES ================= */
 let RM=[],RC={};window.RE=[];
 PG.recipes=async()=>{await load();const[m,r]=await Promise.all([sb.from('menu').select('id,name,price,cat').eq('rid',R.id).order('cat').order('name'),sb.from('recipes').select('*').eq('rid',R.id)]);RM=m.data||[];RC={};(r.data||[]).forEach(x=>(RC[x.menu_id]=RC[x.menu_id]||[]).push(x));
@@ -59,25 +44,11 @@ window.recEdit=i=>{const m=RM[i];if(!ST.length)return toast('Add stock items fir
 /* ================= SUPPLIERS ================= */
 PG.suppliers=async()=>{await load();const{data}=await sb.from('stock_moves').select('item_id,qty,cost,supplier_id,created_at').eq('rid',R.id).eq('kind','in').not('supplier_id','is',null).order('created_at',{ascending:false}).limit(1000);window._pm=data||[];
  const tot=id=>_pm.filter(m=>m.supplier_id===id).reduce((s,m)=>s+m.qty*(m.cost||0),0);
- pg(`<h1 class="page-title">Suppliers</h1>${SP.map(s=>`<div class="row" role="button" tabindex="0" style="cursor:pointer" onclick="supOpen('${s.id}')"><div class="grow"><b>${esc(s.name)}</b><br><small>${esc(s.phone||'no phone')}${ST.some(x=>x.supplier_id===s.id&&low(x))?' · ⚠ low items':''}</small></div><b>${money(Math.round(tot(s.id)))}</b></div>`).join('')||'<div class="panel empty">No suppliers yet.</div>'}<section class="panel"><h3 style="margin:0 0 12px">Add supplier</h3><form id="sf2" style="display:flex;flex-direction:column;gap:10px"><div class="inline"><input class="field" name="n" placeholder="Supplier Name" maxlength="60" required><input class="field" name="p" inputmode="numeric" placeholder="Phone" maxlength="15"></div><div class="inline"><input class="field" name="t" placeholder="Note (optional)" maxlength="100"><button class="btn green" style="max-width:120px">Add</button></div></form><p class="note">The amount shown is total purchased from that supplier.</p></section>`);
+ pg(`<h1 class="page-title">Suppliers</h1>${SP.map(s=>`<div class="row" role="button" tabindex="0" style="cursor:pointer" onclick="supOpen('${s.id}')"><div class="grow"><b>${esc(s.name)}</b><br><small>${esc(s.phone||'no phone')}${ST.some(x=>x.supplier_id===s.id&&low(x))?' · ⚠ low items':''}</small></div><b>${money(Math.round(tot(s.id)))}</b></div>`).join('')||'<div class="panel empty">No suppliers yet.</div>'}<section class="panel"><h3 style="margin:0 0 12px">Add supplier</h3><form id="sf2" class="inline"><input class="field" name="n" placeholder="Name" maxlength="60" required><input class="field" name="p" inputmode="numeric" placeholder="Phone" maxlength="15"><input class="field" name="t" placeholder="Note (optional)" maxlength="100"><button class="btn">Add</button></form><p class="note">The amount shown is total purchased from that supplier.</p></section>`);
  $('sf2').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target),{error}=await sb.from('suppliers').insert({rid:R.id,name:d.get('n').trim(),phone:d.get('p').trim()||null,note:d.get('t').trim()||null});if(error)return toast(error.message);go('suppliers')}};
 window.supOpen=id=>{const s=SP.find(x=>x.id===id),P=_pm.filter(m=>m.supplier_id===id).slice(0,15),L=ST.filter(x=>x.supplier_id===id&&low(x)),txt='Hello '+s.name+', please send: '+L.map(x=>x.name+' '+fq(Math.max(+x.min_qty*2-+x.qty,+x.min_qty))+' '+x.unit).join(', ')+'. Thank you, '+R.name;
  sheet(`<h3 style="margin:0">${esc(s.name)}</h3><small>${esc(s.phone||'')} ${esc(s.note||'')}</small><div class="orderactions" style="margin:12px 0">${s.phone?`<a class="btn gray" href="tel:${esc(s.phone)}">📞 Call</a>`:''}${s.phone&&L.length?`<a class="btn green" target="_blank" rel="noopener" href="https://wa.me/${phn(s.phone)}?text=${encodeURIComponent(txt)}">💬 Reorder low (${L.length})</a>`:''}</div><div class="sectionhead"><h3>Recent purchases</h3></div>${P.map(m=>{const t=item(m.item_id);return`<div class="row" style="margin:4px 0"><div class="grow">${t?esc(t.name):'Item'} × ${fq(m.qty)}<br><small>${new Date(m.created_at).toLocaleDateString()}</small></div><b>${money(r2(m.qty*(m.cost||0)))}</b></div>`}).join('')||'<div class="panel empty">No purchases yet.</div>'}<div class="orderactions" style="margin-top:12px"><button class="btn red" id="sdl">Delete</button><button class="btn gray" onclick="closeSheet()">Close</button></div>`);
- ok('sdl', async () => {
-  $('sheet').innerHTML = `<div class="sheetbox">
-    <h3 style="margin:0 0 8px">Delete supplier?</h3>
-    <p class="note" style="text-align:left">This supplier will be removed permanently.</p>
-    <div class="popup-actions">
-      <button class="btn red" id="delok">Delete</button>
-      <button class="btn gray" onclick="supOpen('${id}')">Cancel</button>
-    </div>
-  </div>`;
-  $('delok').onclick = async () => {
-    await sb.from('suppliers').delete().eq('id', id);
-    cl();
-    go('suppliers');
-  };
- })};
+ ok('sdl',async()=>{if(!confirm('Delete this supplier?'))return;await sb.from('suppliers').delete().eq('id',id);cl();go('suppliers')})};
 /* low stock on Home */
 const _h=PG.home;PG.home=async()=>{await _h();const g=$('pg');if(!g)return;g.insertAdjacentHTML('beforeend','<div id="lowst"></div>');const{data}=await sb.from('stock_items').select('name,unit,qty,min_qty').eq('rid',R.id).eq('active',true),L=(data||[]).filter(low).slice(0,8),el=$('lowst');if(el&&L.length)el.innerHTML=`<div class="sectionhead"><h3>⚠ Low stock</h3><span><a href="#" onclick="go('stock');return false">View all</a></span></div>${L.map(x=>`<div class="row"><div class="grow">${esc(x.name)}</div><b style="color:var(--chili)">${fq(x.qty)} ${esc(x.unit)}</b></div>`).join('')}`};
 /* ================= DELIVERY ================= */
@@ -101,23 +72,7 @@ window.dvDispatch=id=>{const A=RD.filter(r=>r.active!==false);if(!A.length)retur
  ok('dok',async()=>{try{await rpc('delivery_set',{r_id:R.id,d_id:id,st:'out',rd:$('dvr').value,pm:null})}catch(e){return}cl();go('deliv')})};
 window.dvDone=id=>{sheet(`<h3 style="margin:0 0 8px">Delivered · payment received</h3><div class="orderactions">${[...PAY,'Udhaar'].map(m=>`<button class="btn ${m==='Udhaar'?'red':'green'}" onclick="dvPay('${id}','${m}')">${m}</button>`).join('')}<button class="btn gray" onclick="closeSheet()">Cancel</button></div><p class="note" style="text-align:left">Udhaar adds the amount to the customer's dues.</p>`)};
 window.dvPay=async(id,m)=>{try{await rpc('delivery_set',{r_id:R.id,d_id:id,st:'delivered',rd:null,pm:m})}catch(e){return}const{data:d}=await sb.from('deliveries').select('bill_id').eq('id',id).single(),{data:b}=d?await sb.from('bills').select('*').eq('id',d.bill_id).single():{};go('deliv');if(b)billSheet(b,R.name);else cl()};
-window.dvCancel = async id => {
-  $('sheet').innerHTML = `<div class="sheetbox">
-    <h3 style="margin:0 0 8px">Cancel delivery?</h3>
-    <p class="note" style="text-align:left">The order will be marked as cancelled.</p>
-    <div class="popup-actions">
-      <button class="btn red" id="delok">Cancel delivery</button>
-      <button class="btn gray" onclick="$('sheet').innerHTML=''">Keep it</button>
-    </div>
-  </div>`;
-  $('delok').onclick = async () => {
-    try {
-      await rpc('delivery_set', { r_id: R.id, d_id: id, st: 'cancelled', rd: null, pm: null });
-    } catch (e) { return; }
-    $('sheet').innerHTML = '';
-    go('deliv');
-  };
-};
+window.dvCancel=async id=>{if(!confirm('Cancel this delivery?'))return;try{await rpc('delivery_set',{r_id:R.id,d_id:id,st:'cancelled',rd:null,pm:null})}catch(e){return}go('deliv')};
 /* ----- Riders ----- */
 PG.riders=async()=>{await dvLoad();const n=+(window._rr||1),{data}=await sb.from('deliveries').select('*').eq('rid',R.id).eq('status','delivered').not('rider_id','is',null).order('done_at',{ascending:false}).limit(1500),all=data||[],a=new Date(dayR(ymd(startOf(n)))[0]),per=all.filter(d=>new Date(d.done_at)>=a);window._dall=all;
  const rc=id=>per.filter(d=>d.rider_id===id),hold=id=>all.filter(d=>d.rider_id===id&&d.mode==='Cash'&&!d.settled).reduce((s,d)=>s+ +d.total,0),days={};
@@ -126,25 +81,8 @@ PG.riders=async()=>{await dvLoad();const n=+(window._rr||1),{data}=await sb.from
  $('rf').onsubmit=async e=>{e.preventDefault();const d=new FormData(e.target),{error}=await sb.from('riders').insert({rid:R.id,name:d.get('n').trim(),phone:d.get('p').trim()||null,pay_per_run:+d.get('a')||0});if(error)return toast(error.message);go('riders')}};
 window.rdEdit=id=>{const r=RD.find(x=>x.id===id);sheet(`<h3 style="margin:0 0 8px">Edit rider</h3><input class="field" id="rn" value="${esc(r.name)}" maxlength="60"><input class="field" id="rp" inputmode="numeric" value="${esc(r.phone||'')}" placeholder="Phone" maxlength="15"><label class="label">Pay per run ₹</label><input class="field" id="ra" type="number" min="0" step="any" value="${r2(r.pay_per_run||0)}"><label class="label"><input type="checkbox" id="rac" style="width:auto;margin-right:8px" ${r.active===false?'':'checked'}>Active</label><div class="orderactions"><button class="btn green" id="rok">Save</button><button class="btn gray" onclick="closeSheet()">Cancel</button></div>`);
  ok('rok',async()=>{const n=$('rn').value.trim();if(!n)return toast('Enter a name.');const{error}=await sb.from('riders').update({name:n,phone:$('rp').value.trim()||null,pay_per_run:+$('ra').value||0,active:$('rac').checked}).eq('id',id);if(error)return toast(error.message);cl();go('riders')})};
-window.rdSettle = async id => {
-  $('sheet').innerHTML = `<div class="sheetbox">
-    <h3 style="margin:0 0 8px">Settle cash?</h3>
-    <p class="note" style="text-align:left">All cash from this rider will be marked as received.</p>
-    <div class="popup-actions">
-      <button class="btn green" id="delok">Settle</button>
-      <button class="btn gray" onclick="$('sheet').innerHTML=''">Cancel</button>
-    </div>
-  </div>`;
-  $('delok').onclick = async () => {
-    const { error } = await sb.from('deliveries').update({ settled: true })
-      .eq('rider_id', id).eq('status', 'delivered').eq('mode', 'Cash').eq('settled', false);
-    if (error) return toast(error.message);
-    $('sheet').innerHTML = '';
-    toast('Settled.');
-    go('riders');
-  };
-};
-/* ----- Menu in drawer ----- */
+window.rdSettle=async id=>{if(!confirm('Mark all cash from this rider as received?'))return;const{error}=await sb.from('deliveries').update({settled:true}).eq('rider_id',id).eq('status','delivered').eq('mode','Cash').eq('settled',false);if(error)return toast(error.message);toast('Settled.');go('riders')};
+/* ----- Menu ----- */
 DR.push(['Inventory',[['stock','📦','Stock'],['recipes','🍳','Recipes'],['suppliers','🚚','Suppliers']]]);
 DR.push(['Delivery',[['deliv','🛵','Deliveries'],['riders','🏍️','Riders']]]);
 })();
