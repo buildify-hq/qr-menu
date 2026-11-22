@@ -9,7 +9,7 @@ apply();
 function place(){if(!document.body)return;let b=document.getElementById('thm');
  if(!b){b=document.createElement('button');b.id='thm';b.type='button';b.className='icon';b.onclick=()=>{t=t==='light'?'dark':'light';try{localStorage.setItem(K,t)}catch(e){}apply()}}
  const bar=document.querySelector('.topbar');
- if(bar){if(b.parentNode!==bar){bar.appendChild(b)}}
+ if(bar){b.style.cssText='';if(b.parentNode!==bar)bar.appendChild(b)}
  else if(b.parentNode!==document.body){b.style.cssText='position:fixed;top:12px;right:12px;z-index:60';document.body.appendChild(b)}
  apply()}
 new MutationObserver(place).observe(document.documentElement,{childList:true,subtree:true});
