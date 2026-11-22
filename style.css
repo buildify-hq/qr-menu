@@ -61,7 +61,7 @@ select.field{appearance:auto}
 .actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .action{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);min-height:104px;padding:12px 6px;color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;font-weight:700;font-size:13.5px;text-align:center}
 .action:first-child{background:linear-gradient(135deg,var(--saffron2),var(--saffron));color:var(--on-s);border-color:transparent}.action:first-child .actionicon{background:#2a160026;color:var(--on-s)}
-.actionicon{width:46px;height:46px;border-radius:14px;background:var(--panel2);display:grid;place-items:center;font-size:22px}
+.navicon svg{width:20px;height:20px}.actionicon svg{width:24px;height:24px}.actionicon{width:46px;height:46px;border-radius:14px;background:var(--panel2);display:grid;place-items:center;font-size:22px}
 .action:active,.btn:active{transform:scale(.97)}
 .placeholder{background:var(--panel);border:1px dashed var(--line);border-radius:var(--r);padding:22px;color:var(--muted)}.placeholder strong{color:var(--text);display:block;font-size:18px;margin-bottom:6px}
 /* ---------- content blocks ---------- */
@@ -99,7 +99,7 @@ button.row{text-align:left;width:100%}
 .tbl b{font-size:22px;display:block}.tbl .btn{width:100%;margin-top:6px}.tbl small{display:block;color:var(--muted)}
 .pin{font-size:26px;letter-spacing:6px;color:var(--accent);font-weight:800}
 .steps{display:flex;gap:6px;margin:16px 0}.steps i{flex:1;height:8px;border-radius:6px;background:var(--line)}.steps i.on{background:var(--saffron)}
-.inline{display:flex;gap:8px;flex-wrap:wrap}.inline .field{flex:1;min-width:110px;margin:0;height:46px}
+.inline{display:flex;gap:8px;flex-wrap:wrap}.inline .field{flex:1 1 130px;min-width:0;margin:0;height:46px}
 .seg,.tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;margin:0 0 14px;overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
 .seg button,.tabs button{flex:1;border:0;background:transparent;color:var(--muted);padding:10px 12px;min-height:42px;border-radius:10px;font-weight:700;white-space:nowrap}
 .seg .on,.tabs .on{background:linear-gradient(135deg,var(--saffron2),var(--saffron));color:var(--on-s)}
@@ -131,7 +131,7 @@ button.row{text-align:left;width:100%}
 .bottom button.active{color:var(--accent);background:var(--soft-s)}.bottom button.active:before{content:"";position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 4px 4px;background:var(--saffron)}}
 @media(max-width:600px){.formgrid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 .sheet{align-items:flex-end;padding:0}.sheetbox{width:100%;max-width:none;border-radius:26px 26px 0 0;border-bottom:0;max-height:90vh;max-height:90dvh;padding:20px 16px calc(20px + env(safe-area-inset-bottom));animation:up .22s ease-out}
-.inline .field{min-width:0}.row{padding:12px}}
+.row{padding:12px}}
 @media(max-width:340px){.stats{grid-template-columns:1fr}.btn{padding:10px 12px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
 @media print{.topbar,.tabs,.btn,.toast,.bottom,.offline,.install{display:none!important}body{background:#fff}
