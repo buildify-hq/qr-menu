@@ -1,4 +1,4 @@
 window.CFG = {
   URL: "https://qubvrqybbofdppxvgqci.supabase.co",
-  KEY: "https://sirbcgrspyasxsidtalh.supabase.co"
+  KEY: "sb_publishable_s1Tf36nka-uca-O0TuVFhQ_LwJAzgkZ"
 };
