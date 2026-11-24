@@ -1,4 +1,4 @@
-const V = 'v36';
+const V = 'v37';
 const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
 
 self.addEventListener('install', () => self.skipWaiting());
