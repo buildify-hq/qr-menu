@@ -1,3 +1,13 @@
+if(typeof window.tn!=='function') window.tn=t=>'Table '+t;
+if(typeof window.parseSizes!=='function') window.parseSizes=s=>{const z=String(s||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>{const[n,p,f]=x.split(':');return{n:(n||'').replace(/[^\w\u0900-\u097F ]/g,'').trim(),p:+p,...(f&&+f>0?{f:+f}:{})}}).filter(x=>x.n&&x.p>=0);return z.length?{sizes:z,price:Math.min(...z.map(x=>x.p))}:{}};
+if(typeof window.expandSizes!=='function') window.expandSizes=ms=>(ms||[]).flatMap(m=>m.sizes&&m.sizes.length?m.sizes.map((s,i)=>({...m,rid:m.id,id:m.id+'~'+i,sz:s.n,name:m.name+' ('+s.n+')',price:s.p})):[m]);
+if(typeof window.chime!=='function') window.chime=()=>{};
+if(typeof window.bell!=='function') window.bell=()=>{};
+if(typeof window.kotWatch!=='function') window.kotWatch=()=>{};
+if(typeof window.kotPrint!=='function') window.kotPrint=()=>{};
+if(typeof window.openScan!=='function') window.openScan=()=>toast('Scan feature is missing');
+if(typeof window.floorGrid!=='function') window.floorGrid=(d,fn)=>{const g={};for(let i=0;i<d.tables;i++){g['']=g['']||[];g[''].push(fn(i))}return `<div class="grid">${g[''].join('')}</div>`};
+
 const sb=supabase.createClient(CFG.URL,CFG.KEY),$=id=>document.getElementById(id),app=$('app');
 const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,7 +28,7 @@ function loginView(){
   const done=()=>{if($('lbtn')){$('lbtn').disabled=false;$('lbtn').innerHTML='Login &nbsp;⇥'}};
   try{const d=new FormData(e.target),n=d.get('n').trim(),p=d.get('p').trim();
    const si=async em=>{const{error}=await sb.auth.signInWithPassword({email:em,password:p});if(error)return false;boot();return true};
-   if(n.toLowerCase()==='admin'){if(!await si('sj201205@gmail.com'))toast('Wrong PIN.');return done()}
+   if(n.toLowerCase()==='admin'){if(!await si('sj201250@gmail.com'))toast('Wrong PIN.');return done()}
    let r;try{r=await rpc('rest_resolve',{c:n})}catch(x){return done()}
    if(!r){toast('Restaurant not found. Check the name or code.');return done()}
    if(await si(r.email))return;
@@ -49,7 +59,6 @@ const dayR=(d,n=1)=>{const a=new Date(d+'T00:00:00'),b=new Date(a);b.setDate(b.g
 const sum=(a,f=x=>x.total)=>a.reduce((s,x)=>s+Number(f(x)),0);
 const getBills=async(a,b)=>(await sb.from('bills').select('*').eq('rid',R.id).gte('created_at',a).lt('created_at',b).order('created_at',{ascending:false})).data||[];
 const modes=bs=>['Cash','UPI','Card','Udhaar'].map(m=>`<div class="row"><div class="grow">${m}</div><b>${money(sum(bs.filter(b=>b.mode===m)))}</b></div>`).join('');
-const foodEmoji=()=>'';
 const vd=m=>`<i class="vd ${m.veg===false?'nv':'v'}"></i>`;
 let P='home',HD=ymd(new Date()),BL=[];
 function drawer(v){$('dr').classList.toggle('open',!!v);$('ov').classList.toggle('hidden',!v)}
