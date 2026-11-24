@@ -1,6 +1,6 @@
 /* Dark / Light mode toggle (remembers choice, follows phone setting first time) */
 (function(){const K='sj_theme',de=document.documentElement;
-window.tn=t=>/^D\d+$/.test(String(t))?'Delivery '+t:'Table '+t;
+window.tn=t=>/^D\d+$/.test(String(t))?'🛵 Delivery '+t:'Table '+t;
 let t;try{t=localStorage.getItem(K)}catch(e){}
 if(t!=='light'&&t!=='dark')t=window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
 const SUN='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>',MOON='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></svg>';

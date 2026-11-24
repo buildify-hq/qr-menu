@@ -37,6 +37,3 @@ New files: ui.js, icon-192.png, icon-512.png, icon-maskable.png
 v3.4 (no new SQL): Menu Card (menu in the drawer, or "Menu Card" button on the Menu page).
 Make a printable menu card with your own restaurant name; sections, Half/Full columns, colours, print / PDF / image / share. No emoji.
 New file: card.js. Changed: index.html, sw.js, scan.js, phase4.js.
-
-v3.5 (no new SQL): all emoji removed from the app (drawer, buttons, dish rows, customer menu), replaced by clean line icons.
-Add item form fixed on phones. Files changed: app.js, phase1-4.js, scan.js, ui.js, card.js, theme.js, style.css, index.html, sw.js.
