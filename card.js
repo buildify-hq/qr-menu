@@ -64,3 +64,4 @@ window.mcPng=async share=>{try{css();const el=$('mcw').querySelector('.mc'),h=el
 const ICON='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
 DR.find(s=>s[0]==='Menu')[1].push(['card',ICON,'Menu Card']);
 })();
+
