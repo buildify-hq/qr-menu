@@ -28,7 +28,7 @@ function loginView(){
   const done=()=>{if($('lbtn')){$('lbtn').disabled=false;$('lbtn').innerHTML='Login &nbsp;⇥'}};
   try{const d=new FormData(e.target),n=d.get('n').trim(),p=d.get('p').trim();
    const si=async em=>{const{error}=await sb.auth.signInWithPassword({email:em,password:p});if(error)return false;boot();return true};
-   if(n.toLowerCase()==='admin'){if(!await si('sj201250@gmail.com'))toast('Wrong PIN.');return done()}
+   if(n.toLowerCase()==='admin'){if(!await si('sj201205@gmail.com'))toast('Wrong PIN.');return done()}
    let r;try{r=await rpc('rest_resolve',{c:n})}catch(x){return done()}
    if(!r){toast('Restaurant not found. Check the name or code.');return done()}
    if(await si(r.email))return;
